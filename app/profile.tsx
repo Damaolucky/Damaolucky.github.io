@@ -2,7 +2,6 @@ import Image from "next/image";
 import { AcademyBrand } from "./components/academy-brand";
 import { AcademyCustomizer } from "./components/academy-customizer";
 import { AcademyInteractions } from "./components/academy-interactions";
-import { BackgroundToggle } from "./components/background-toggle";
 import { ProfilePortrait } from "./components/profile-portrait";
 import { SectionNav } from "./components/section-nav";
 import { MotionToggle, ThemeToggle } from "./components/theme-controls";
@@ -119,7 +118,6 @@ export function ProfilePage() {
         <SectionNav className={styles.primaryNav} />
         <div className={styles.topActions}>
           <div className={styles.inlineControls} aria-label="Display preferences">
-            <BackgroundToggle className={`${styles.preferenceButton} ${styles.backgroundPreferenceButton}`} />
             <MotionToggle className={styles.preferenceButton} />
             <ThemeToggle className={styles.preferenceButton} />
           </div>

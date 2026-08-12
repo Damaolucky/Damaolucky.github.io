@@ -17,7 +17,7 @@ html {
 body {
   min-width: 320px;
   margin: 0;
-  background: #ffffff;
+  background: #faf8fd;
   color: #20242a;
   font-family: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
   font-size: 14px;
@@ -46,7 +46,7 @@ body {
 }
 
 :root[data-theme="dark"] body {
-  background: #0d1117;
+  background: #1c1823;
   color: #e6edf3;
 }
 

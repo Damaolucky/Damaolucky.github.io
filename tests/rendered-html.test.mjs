@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { access, readFile, stat } from "node:fs/promises";
 import test from "node:test";
+import { runInNewContext } from "node:vm";
 
 async function render(pathname = "/") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -152,17 +153,57 @@ test("shows black icon contacts, reveals a selectable round email, and disables 
   assert.doesNotMatch(footer, /<a\b|@|Lavender|薰衣草/);
 });
 
-test("hydrates theme controls from a stable snapshot and softens visual theme changes", async () => {
-  const [controls, globals, css] = await Promise.all([
+test("defaults to bright mode, restores saved dark mode, and hydrates from a stable snapshot", async () => {
+  const [controls, globals, css, layout] = await Promise.all([
     readFile(new URL("../app/components/theme-controls.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../app/profile.module.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
   ]);
+  const response = await render("/");
+  const html = await response.text();
+  const initializationScript = layout.match(/__html:\s*`([\s\S]*?)`,/)?.[1] ?? "";
+
+  const initializeTheme = (savedTheme, systemPrefersDark) => {
+    const root = { dataset: {}, style: {} };
+    const mediaQueries = [];
+
+    runInNewContext(initializationScript, {
+      document: { documentElement: root },
+      localStorage: {
+        getItem(key) {
+          return key === "homepage-theme" ? savedTheme : null;
+        },
+      },
+      matchMedia(query) {
+        mediaQueries.push(query);
+        return { matches: query === "(prefers-color-scheme: dark)" && systemPrefersDark };
+      },
+    });
+
+    return { root, mediaQueries };
+  };
+
+  assert.ok(initializationScript, "theme initialization script is present");
+  const firstVisit = initializeTheme(null, true);
+  assert.equal(firstVisit.root.dataset.theme, "light");
+  assert.equal(firstVisit.root.style.colorScheme, "light");
+  assert.equal(firstVisit.mediaQueries.includes("(prefers-color-scheme: dark)"), false);
+
+  const returningDarkVisit = initializeTheme("dark", false);
+  assert.equal(returningDarkVisit.root.dataset.theme, "dark");
+  assert.equal(returningDarkVisit.root.style.colorScheme, "dark");
 
   assert.match(controls, /useSyncExternalStore/);
   assert.match(controls, /\(\) => "light"/);
   assert.match(controls, /THEME_PREFERENCE_EVENT = "homepage-theme-change"/);
   assert.doesNotMatch(controls, /useState<Theme>/);
+  assert.match(layout, /var theme='light'/);
+  assert.match(layout, /savedTheme=localStorage\.getItem\('homepage-theme'\)/);
+  assert.match(layout, /theme=savedTheme==='dark'\?'dark':'light'/);
+  assert.doesNotMatch(layout, /prefers-color-scheme/);
+  assert.match(html, /aria-label="Switch to dark mode"/);
+  assert.match(html, /aria-pressed="false"/);
   assert.match(controls, /startViewTransition/);
   assert.match(controls, /prefers-reduced-motion: reduce/);
   assert.match(globals, /::view-transition-old\(root\)/);
@@ -173,38 +214,34 @@ test("hydrates theme controls from a stable snapshot and softens visual theme ch
   assert.match(css, /\.topbar\s*\{[\s\S]*?transition: background-color 460ms/);
 });
 
-test("defaults to white while retaining a hydration-stable Lavender background switch", async () => {
-  const [toggle, layout, page, css] = await Promise.all([
-    readFile(new URL("../app/components/background-toggle.tsx", import.meta.url), "utf8"),
+test("uses Lavender as the only page background and removes the background switch", async () => {
+  const [layout, page, css] = await Promise.all([
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/profile.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/profile.module.css", import.meta.url), "utf8"),
   ]);
   const response = await render("/");
   const html = await response.text();
+  const displayPreferences = html.match(/<div[^>]*aria-label="Display preferences"[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? "";
+  const lightPage = css.match(/^\.page\s*\{([\s\S]*?)\n\}/m)?.[1] ?? "";
+  const darkPage = css.match(/:global\(:root\[data-theme="dark"\]\) \.page\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
 
-  assert.match(page, /import \{ BackgroundToggle \} from "\.\/components\/background-toggle"/);
-  assert.match(page, /<BackgroundToggle className=\{`\$\{styles\.preferenceButton\} \$\{styles\.backgroundPreferenceButton\}`\} \/>/);
-  assert.match(html, /aria-label="Use lavender page background"/);
-  assert.match(html, /aria-pressed="false"/);
-  assert.match(html, />Lavender<\/span>/);
-  assert.match(toggle, /type Background = "white" \| "lavender"/);
-  assert.match(toggle, /useSyncExternalStore/);
-  assert.match(toggle, /\(\) => "white"/);
-  assert.match(toggle, /BACKGROUND_STORAGE_KEY = "homepage-background"/);
-  assert.match(toggle, /BACKGROUND_PREFERENCE_EVENT = "homepage-background-change"/);
-  assert.match(toggle, /event\.newValue === "lavender" \? "lavender" : "white"/);
-  assert.match(toggle, /background === "white" \? "lavender" : "white"/);
-  assert.doesNotMatch(toggle, /useState|Math\.random|Date\.now/);
+  await assert.rejects(access(new URL("../app/components/background-toggle.tsx", import.meta.url)));
+  assert.ok(displayPreferences, "display preferences are rendered");
+  assert.equal((displayPreferences.match(/<button\b/g) ?? []).length, 2);
+  assert.match(displayPreferences, /Turn motion (?:off|on)/);
+  assert.match(displayPreferences, /Switch to dark mode/);
+  assert.doesNotMatch(html, /aria-label="Use (?:white|lavender) page background"/i);
+  assert.doesNotMatch(html, />White<\/span>/i);
 
-  assert.match(layout, /savedBackground=localStorage\.getItem\('homepage-background'\)/);
-  assert.match(layout, /savedBackground==='lavender'\?'lavender':'white'/);
-  assert.match(layout, /document\.documentElement\.dataset\.background=background/);
-  assert.match(layout, /catch\(e\)\{document\.documentElement\.dataset\.background='white'/);
-  assert.match(css, /\.page\s*\{[\s\S]*?--bg: #ffffff;[\s\S]*?background: var\(--bg\)/);
-  assert.match(css, /data-background="lavender"[\s\S]*?--bg: #faf8fd;[\s\S]*?radial-gradient/);
-  assert.match(css, /data-theme="dark"\]\[data-background="lavender"/);
-  assert.match(css, /\.backgroundPreferenceButton\s*\{[\s\S]*?width: 108px/);
+  assert.doesNotMatch(page, /BackgroundToggle|background-toggle|backgroundPreferenceButton/);
+  assert.doesNotMatch(layout, /homepage-background|savedBackground|dataset\.background/);
+  assert.match(lightPage, /--bg: #faf8fd/);
+  assert.equal((lightPage.match(/radial-gradient/g) ?? []).length, 3);
+  assert.match(lightPage, /var\(--bg\)/);
+  assert.match(darkPage, /--bg: #1c1823/);
+  assert.doesNotMatch(css, /--bg:\s*#ffffff/i);
+  assert.doesNotMatch(css, /data-background|backgroundPreferenceButton/);
 });
 
 test("uses one maintainable paper list and keeps content out of page components", async () => {
