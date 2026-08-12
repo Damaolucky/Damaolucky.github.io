@@ -600,12 +600,13 @@ test("keeps Izumi's drag, illustrated turn, and crisp bubble interactions cohere
   // Airborne art is selected once from the pickup-facing direction and never
   // alternates while moving. The deliberately slower landing chain preserves
   // each illustrated beat long enough to read before returning to idle.
-  assert.match(component, /PET_DROP_MS\s*=\s*280/);
+  assert.match(component, /PET_DROP_MS\s*=\s*160/);
   assert.match(component, /PET_LAND_MS\s*=\s*480/);
   assert.match(component, /PET_RECOVER_MS\s*=\s*520/);
   assert.match(component, /PET_CELEBRATE_MS\s*=\s*860/);
   assert.match(component, /PET_STILL_LAND_MS\s*=\s*360/);
-  assert.match(css, /data-drag-phase="dropping"\] \.stage\s*\{[\s\S]*?petWholeDrop 280ms/);
+  assert.match(css, /data-drag-phase="dropping"\] \.stage\s*\{[\s\S]*?petWholeDrop 160ms/);
+  assert.match(css, /data-drag-phase="dropping"\]\s*\{[\s\S]*?transition: transform 160ms/);
   assert.match(css, /data-drag-phase="landing"\] \.stage\s*\{[\s\S]*?petWholeLanding 480ms/);
   assert.match(css, /data-drag-phase="recovering"\] \.stage\s*\{[\s\S]*?petWholeRecovery 520ms/);
   assert.match(css, /data-drag-phase="celebrating"\] \.stage\s*\{[\s\S]*?petWholeCelebrate 860ms/);
