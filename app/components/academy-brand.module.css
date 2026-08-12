@@ -1,0 +1,124 @@
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--text);
+}
+
+.name {
+  color: inherit;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.name:hover {
+  color: var(--accent);
+}
+
+.name:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.mark {
+  position: relative;
+  display: grid;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  place-items: center;
+  background: var(--accent);
+  border: 0;
+  border-radius: 13px;
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--accent) 24%, transparent);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  transition: border-radius 180ms ease, transform 180ms ease;
+}
+
+.heart {
+  display: block;
+  width: 23px;
+  height: 23px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+  transform: rotate(-6deg);
+  transform-origin: 50% 50%;
+  transition: transform 180ms ease;
+}
+
+.heartShape { display: block; }
+
+.mark:hover {
+  border-radius: 50% 42% 50% 38%;
+  transform: rotate(-7deg) scale(1.04);
+}
+
+.mark:hover .heart { transform: rotate(8deg) scale(1.08); }
+.mark:active { transform: rotate(5deg) scale(0.92); }
+
+.mark:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 40%, #fff);
+  outline-offset: 3px;
+}
+
+.bubbles {
+  position: absolute;
+  z-index: -1;
+  inset: 50%;
+  pointer-events: none;
+}
+
+.bubbles i {
+  --bubble-x: 0px;
+  --bubble-y: -30px;
+  --bubble-delay: 0ms;
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  background: color-mix(in srgb, var(--highlight) 88%, #fff);
+  border: 1px solid color-mix(in srgb, var(--accent) 58%, transparent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: bubblePop 720ms cubic-bezier(0.16, 0.78, 0.25, 1) var(--bubble-delay) both;
+}
+
+.bubbles i:nth-child(2n) {
+  width: 6px;
+  height: 6px;
+  background: color-mix(in srgb, var(--secondary) 44%, var(--panel));
+}
+
+.bubbles i:nth-child(3n) {
+  width: 11px;
+  height: 11px;
+  background: color-mix(in srgb, var(--tertiary) 35%, var(--panel));
+}
+
+@keyframes bubblePop {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.2); }
+  28% { opacity: 1; }
+  72% { opacity: 0.86; transform: translate(var(--bubble-x), var(--bubble-y)) scale(1); }
+  100% { opacity: 0; transform: translate(calc(var(--bubble-x) * 1.16), calc(var(--bubble-y) * 1.16)) scale(0.55); }
+}
+
+@media (max-width: 780px) {
+  .name { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mark,
+  .heart { transition: none; }
+  .bubbles { display: none; }
+}

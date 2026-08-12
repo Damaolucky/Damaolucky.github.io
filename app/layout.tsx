@@ -1,30 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { profile } from "./content/profile";
 
 export const metadata: Metadata = {
-  title: "你的名字｜个人主页",
-  description: "设计、代码与日常观察的个人存档。把好奇心，做成看得见的东西。",
+  title: `${profile.name} · Research Portfolio`,
+  description: profile.statement,
   openGraph: {
-    title: "你的名字｜个人主页",
-    description: "设计、代码与日常观察的个人存档。",
+    title: `${profile.name} · Research Portfolio`,
+    description: profile.statement,
     type: "website",
-    locale: "zh_CN",
+    locale: "en_US",
   },
   twitter: {
     card: "summary",
-    title: "你的名字｜个人主页",
-    description: "设计、代码与日常观察的个人存档。",
+    title: `${profile.name} · Research Portfolio`,
+    description: profile.statement,
   },
 };
 
@@ -34,19 +24,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var saved=localStorage.getItem('homepage-theme');var theme=saved||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.theme=theme;document.documentElement.style.colorScheme=theme;}catch(e){}})();`,
+            __html: `(function(){try{var saved=localStorage.getItem('homepage-theme');var theme=saved||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');var savedMotion=localStorage.getItem('homepage-motion');var motion=savedMotion||(matchMedia('(prefers-reduced-motion: reduce)').matches?'off':'on');var savedBackground=localStorage.getItem('homepage-background');var background=savedBackground==='lavender'?'lavender':'white';document.documentElement.dataset.theme=theme;document.documentElement.dataset.motion=motion;document.documentElement.dataset.background=background;document.documentElement.style.colorScheme=theme;}catch(e){document.documentElement.dataset.background='white';}})();`,
           }}
         />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

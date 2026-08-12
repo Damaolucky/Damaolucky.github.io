@@ -1,0 +1,45 @@
+.nav .link {
+  position: relative;
+  transition: color 180ms ease;
+}
+
+.nav .link::after {
+  position: absolute;
+  right: 0;
+  bottom: -8px;
+  left: 0;
+  height: 2px;
+  background: currentColor;
+  border-radius: 999px;
+  content: "";
+  opacity: 0;
+  transform: scaleX(0.35);
+  transition: opacity 180ms ease, transform 220ms cubic-bezier(0.22, 0.78, 0.24, 1);
+}
+
+.nav .link[aria-current="location"] {
+  color: var(--accent-deep, var(--accent));
+}
+
+.nav .link[aria-current="location"]::after {
+  opacity: 0.78;
+  transform: scaleX(1);
+}
+
+.nav .link:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid var(--accent);
+  outline-offset: 5px;
+}
+
+:global(:root[data-motion="off"]) .nav .link,
+:global(:root[data-motion="off"]) .nav .link::after {
+  transition-duration: 0.01ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav .link,
+  .nav .link::after {
+    transition-duration: 0.01ms;
+  }
+}

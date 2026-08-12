@@ -1,0 +1,612 @@
+.petButton:focus-visible {
+  outline: 3px solid var(--accent, #8266c7);
+  outline-offset: 3px;
+}
+
+.petLayer {
+  --pet-bubble: rgba(255, 253, 255, 0.97);
+  --pet-bubble-text: #30283a;
+  --pet-bubble-line: rgba(111, 84, 155, 0.28);
+  position: fixed;
+  z-index: 52;
+  inset: 0;
+  overflow: clip;
+  pointer-events: none;
+  contain: layout style;
+}
+
+.petButton {
+  --pet-facing: -1;
+  --pet-roam-x: 0px;
+  --pet-user-x: 0px;
+  --pet-user-y: 0px;
+  --izumi-drag-column: 0;
+  --izumi-drag-row: 0;
+  --izumi-turn-column: 0;
+  --izumi-reaction-column: 0;
+  position: absolute;
+  right: max(clamp(18px, 3vw, 42px), env(safe-area-inset-right));
+  bottom: max(clamp(18px, 3.2vh, 34px), env(safe-area-inset-bottom));
+  width: clamp(138px, 11.5vw, 174px);
+  aspect-ratio: 240 / 230;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 44%;
+  cursor: grab;
+  pointer-events: auto;
+  transform: translate3d(calc(var(--pet-user-x) + var(--pet-roam-x)), var(--pet-user-y), 0);
+  transition: transform 4.1s cubic-bezier(0.42, 0.05, 0.22, 1);
+  user-select: none;
+  will-change: transform;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.petButton[data-facing="right"] { --pet-facing: 1; }
+
+.petButton[data-drag-phase="lifting"],
+.petButton[data-drag-phase="dragging"] {
+  cursor: grabbing;
+}
+
+.petButton[data-drag-phase="dropping"] {
+  cursor: grabbing;
+}
+
+.petButton[data-drag-phase="landing"],
+.petButton[data-drag-phase="recovering"],
+.petButton[data-drag-phase="celebrating"] {
+  cursor: default;
+}
+
+.petButton[data-drag-phase="lifting"],
+.petButton[data-drag-phase="dragging"],
+.petButton[data-drag-phase="landing"],
+.petButton[data-drag-phase="recovering"],
+.petButton[data-drag-phase="celebrating"] {
+  transition: none;
+}
+
+.petButton[data-drag-phase="dropping"] {
+  cursor: grabbing;
+  transition: transform 280ms cubic-bezier(0.2, 0.72, 0.22, 1);
+}
+
+.petButton[data-species="izumi"] {
+  width: clamp(136px, 10.4vw, 164px);
+  aspect-ratio: 480 / 680;
+  border-radius: 42% 42% 16% 16%;
+}
+
+.petButton:hover .stage {
+  filter: drop-shadow(0 10px 10px rgba(76, 57, 96, 0.14));
+}
+
+.stage,
+.facing {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform-origin: 50% 90%;
+}
+
+.stage {
+  transition: filter 180ms ease, transform 320ms cubic-bezier(0.22, 0.78, 0.24, 1);
+  will-change: transform;
+}
+
+.facing {
+  transform: scaleX(var(--pet-facing));
+  will-change: transform, opacity;
+}
+
+.petButton[data-turning="frames"] .facing {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.izumiArt,
+.izumiPose,
+.izumiDragArt,
+.izumiTurnArt,
+.izumiReactionArt {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.izumiReactionArt {
+  z-index: 2;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 7px 5px rgba(62, 49, 37, 0.13));
+  transform-origin: 50% 94%;
+  transition: opacity 180ms ease, visibility 0s linear 180ms;
+  visibility: hidden;
+}
+
+.izumiReactionSprite {
+  position: absolute;
+  top: 0;
+  left: calc(var(--izumi-reaction-column) * -100%);
+  display: block;
+  width: 200%;
+  height: 100%;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.petButton[data-action="painting"] { --izumi-reaction-column: 0; }
+.petButton[data-action="heart"] { --izumi-reaction-column: 1; }
+
+.petButton[data-action="painting"] .izumiArt,
+.petButton[data-action="heart"] .izumiArt {
+  animation: none;
+  opacity: 0;
+}
+
+.petButton[data-action="painting"] .izumiReactionArt,
+.petButton[data-action="heart"] .izumiReactionArt {
+  opacity: 1;
+  transition-delay: 0s;
+  visibility: visible;
+}
+
+.petButton[data-action="painting"] .izumiReactionArt {
+  animation: izumiWholePainting 1.5s ease-in-out infinite;
+}
+
+.petButton[data-action="heart"] .izumiReactionArt {
+  animation: izumiWholeHeart 1.15s ease-in-out infinite;
+}
+
+.izumiTurnArt {
+  z-index: 3;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.izumiTurnSprite {
+  position: absolute;
+  top: 0;
+  left: calc(var(--izumi-turn-column) * -100%);
+  display: block;
+  width: 500%;
+  height: 100%;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.petButton[data-turning="frames"] .izumiTurnArt {
+  opacity: 1;
+  visibility: visible;
+}
+
+.petButton[data-turn-frame="0"] { --izumi-turn-column: 0; }
+.petButton[data-turn-frame="1"] { --izumi-turn-column: 1; }
+.petButton[data-turn-frame="2"] { --izumi-turn-column: 2; }
+.petButton[data-turn-frame="3"] { --izumi-turn-column: 3; }
+.petButton[data-turn-frame="4"] { --izumi-turn-column: 4; }
+
+.izumiArt {
+  filter: drop-shadow(0 7px 5px rgba(62, 49, 37, 0.13));
+  transform-origin: 50% 94%;
+  animation: izumiWholeIdle 5.2s ease-in-out infinite;
+  will-change: transform;
+}
+
+.izumiPose {
+  opacity: 0;
+  transform: translateZ(0) scale(0.99);
+  transition: opacity 220ms ease, transform 300ms cubic-bezier(0.22, 0.78, 0.24, 1);
+  will-change: opacity, transform;
+}
+
+/* One preloaded 4×2 bitmap supplies all eight full-body drag poses. The frame
+   changes are hard cuts, so the browser never sweeps across neighboring cells. */
+.izumiDragArt {
+  z-index: 1;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: 50% 88%;
+  visibility: hidden;
+  will-change: transform;
+}
+
+.izumiDragSprite {
+  position: absolute;
+  top: calc(var(--izumi-drag-row) * -100%);
+  left: calc(var(--izumi-drag-column) * -100%);
+  display: block;
+  width: 400%;
+  height: 200%;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.petButton[data-drag-frame="0"] { --izumi-drag-column: 0; --izumi-drag-row: 0; }
+.petButton[data-drag-frame="1"] { --izumi-drag-column: 1; --izumi-drag-row: 0; }
+.petButton[data-drag-frame="2"] { --izumi-drag-column: 2; --izumi-drag-row: 0; }
+.petButton[data-drag-frame="3"] { --izumi-drag-column: 3; --izumi-drag-row: 0; }
+.petButton[data-drag-frame="4"] { --izumi-drag-column: 0; --izumi-drag-row: 1; }
+.petButton[data-drag-frame="5"] { --izumi-drag-column: 1; --izumi-drag-row: 1; }
+.petButton[data-drag-frame="6"] { --izumi-drag-column: 2; --izumi-drag-row: 1; }
+
+.izumiFrame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  image-rendering: auto;
+  shape-rendering: geometricPrecision;
+}
+
+.izumiMarks {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  pointer-events: none;
+  stroke: #8769c5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 7;
+}
+
+.izumiZzz,
+.izumiSparkles,
+.izumiMotionMarks {
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.izumiPose[data-pose="idle"] {
+  opacity: 1;
+  transform: translateZ(0) scale(1);
+}
+
+.petButton[data-species="izumi"][data-action="happy"] .izumiPose[data-pose="idle"],
+.petButton[data-species="izumi"][data-action="cheer"] .izumiPose[data-pose="idle"],
+.petButton[data-species="izumi"][data-action="jump"] .izumiPose[data-pose="idle"],
+.petButton[data-species="izumi"][data-action="sleep"] .izumiPose[data-pose="idle"],
+.petButton[data-species="izumi"][data-action="drowsy"] .izumiPose[data-pose="idle"] {
+  opacity: 0;
+  transform: translateZ(0) scale(0.99);
+}
+
+.petButton[data-species="izumi"][data-action="happy"] .izumiPose[data-pose="wave"],
+.petButton[data-species="izumi"][data-action="cheer"] .izumiPose[data-pose="wave"],
+.petButton[data-species="izumi"][data-action="jump"] .izumiPose[data-pose="startled"],
+.petButton[data-species="izumi"][data-action="sleep"] .izumiPose[data-pose="sleep"],
+.petButton[data-species="izumi"][data-action="drowsy"] .izumiPose[data-pose="sleep"] {
+  opacity: 1;
+  transform: translateZ(0) scale(1);
+}
+
+.petButton[data-species="izumi"][data-action="sleep"] .izumiZzz,
+.petButton[data-species="izumi"][data-action="drowsy"] .izumiZzz {
+  opacity: 0.92;
+  animation: zzzFloat 2.2s ease-in-out infinite;
+}
+
+.petButton[data-species="izumi"][data-action="happy"] .izumiSparkles,
+.petButton[data-species="izumi"][data-action="cheer"] .izumiSparkles {
+  opacity: 0.9;
+  animation: sparkle 900ms ease-in-out infinite alternate;
+}
+
+.petButton[data-species="izumi"][data-action="move"] .izumiMotionMarks {
+  opacity: 0.78;
+  animation: marksPulse 820ms ease-in-out infinite;
+}
+
+.bubble {
+  position: fixed;
+  z-index: 5;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(210px, 66vw);
+  padding: 9px 12px;
+  background: var(--pet-bubble);
+  border: 1px solid var(--pet-bubble-line);
+  border-radius: 15px 15px 4px 15px;
+  box-shadow: 0 12px 34px rgba(56, 41, 74, 0.14);
+  color: var(--pet-bubble-text);
+  font-family: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  font-synthesis: none;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  text-rendering: geometricPrecision;
+  transform: translateY(2px);
+  transition: opacity 160ms ease, transform 180ms ease;
+  -webkit-font-smoothing: antialiased;
+}
+
+.bubble::after {
+  position: absolute;
+  right: -1px;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  background: inherit;
+  border-right: 1px solid var(--pet-bubble-line);
+  border-bottom: 1px solid var(--pet-bubble-line);
+  content: "";
+  clip-path: polygon(0 0, 100% 100%, 100% 0);
+}
+
+.bubble[data-visible="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+:global(:root[data-theme="dark"]) .petLayer {
+  --pet-bubble: rgba(44, 36, 56, 0.97);
+  --pet-bubble-text: #fbf8ff;
+  --pet-bubble-line: rgba(197, 174, 255, 0.36);
+}
+
+.petButton[data-species="izumi"] .stage {
+  animation: none;
+}
+
+.petButton[data-species="izumi"][data-action="move"] .izumiArt {
+  animation: izumiWholeWalk 760ms ease-in-out infinite;
+}
+
+.petButton[data-species="izumi"][data-action="happy"] .izumiArt {
+  animation: izumiWholeHappy 920ms ease-in-out infinite;
+}
+
+.petButton[data-species="izumi"][data-action="cheer"] .izumiArt {
+  animation: izumiWholeCheer 880ms ease-in-out infinite;
+}
+
+.petButton[data-species="izumi"][data-action="jump"] .izumiArt {
+  animation: izumiWholeJump 1.25s cubic-bezier(0.2, 0.75, 0.25, 1) infinite;
+}
+
+.petButton[data-species="izumi"][data-action="sleep"] .izumiArt {
+  animation: izumiWholeSleep 4.4s ease-in-out infinite;
+}
+
+.petButton[data-species="izumi"][data-action="drowsy"] .izumiArt {
+  animation: izumiWholeDrowsy 3s ease-in-out infinite;
+}
+
+/* Drag reactions swap to dedicated, complete illustrations. No body part is
+   rigged, stretched, or transformed independently. */
+.petButton[data-species="izumi"][data-drag-art="sprite"] .izumiArt {
+  animation: none;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.petButton[data-species="izumi"][data-drag-art="sprite"] .izumiDragArt {
+  opacity: 1;
+  visibility: visible;
+}
+
+.petButton[data-species="izumi"][data-drag-phase="celebrating"] .izumiPose[data-pose="idle"] {
+  opacity: 0;
+  transform: translateZ(0) scale(0.99);
+}
+
+.petButton[data-species="izumi"][data-drag-phase="celebrating"] .izumiPose[data-pose="wave"] {
+  opacity: 1;
+  transform: translateZ(0) scale(1);
+}
+
+.petButton[data-species="izumi"][data-drag-phase="dragging"] .izumiDragArt {
+  animation: izumiCarryFloat 680ms ease-in-out infinite;
+}
+
+.petButton[data-drag-phase="lifting"] .stage {
+  animation: petWholePickup 170ms cubic-bezier(0.18, 0.82, 0.2, 1) both;
+}
+
+.petButton[data-drag-phase="dragging"] .stage {
+  transform: translateY(-10px) rotate(-1.25deg) scale(1.018);
+}
+
+.petButton[data-drag-phase="dropping"] .stage {
+  animation: petWholeDrop 280ms cubic-bezier(0.2, 0.68, 0.22, 1) both;
+}
+
+.petButton[data-drag-phase="landing"] .stage {
+  animation: petWholeLanding 480ms cubic-bezier(0.18, 0.78, 0.24, 1) both;
+}
+
+.petButton[data-drag-phase="recovering"] .stage {
+  animation: petWholeRecovery 520ms cubic-bezier(0.18, 0.82, 0.22, 1) both;
+}
+
+.petButton[data-drag-phase="celebrating"] .stage {
+  animation: petWholeCelebrate 860ms ease-in-out both;
+}
+
+.petLayer[data-motion="off"] .stage {
+  animation: none;
+}
+
+.petLayer[data-motion="off"] .facing,
+.petLayer[data-motion="off"] .izumiPose,
+.petLayer[data-motion="off"] .izumiArt,
+.petLayer[data-motion="off"] .izumiDragArt,
+.petLayer[data-motion="off"] .izumiTurnArt,
+.petLayer[data-motion="off"] .izumiReactionArt,
+.petLayer[data-motion="off"] .izumiZzz,
+.petLayer[data-motion="off"] .izumiSparkles,
+.petLayer[data-motion="off"] .izumiMotionMarks {
+  animation: none;
+  transition: none;
+}
+
+.petLayer[data-motion="off"] .petButton {
+  transform: translate3d(calc(var(--pet-user-x) + var(--pet-roam-x)), var(--pet-user-y), 0);
+  transition: none;
+}
+
+.petLayer[data-motion="off"] .petButton[data-drag-phase] .stage {
+  animation: none;
+  transform: none;
+  transition: none;
+}
+
+@keyframes petWholePickup {
+  0% { transform: translateY(-1px) rotate(-0.5deg) scale(1.006); }
+  72% { transform: translateY(-12px) rotate(-1.6deg) scale(1.022); }
+  100% { transform: translateY(-10px) rotate(-1.25deg) scale(1.018); }
+}
+
+@keyframes petWholeDrop {
+  0% { transform: translateY(-10px) rotate(-1.25deg) scale(1.018); }
+  100% { transform: translateY(0) rotate(0.45deg) scale(1); }
+}
+
+@keyframes petWholeLanding {
+  0% { transform: translateY(0) rotate(0.45deg) scale(1); }
+  34% { transform: translateY(2px) rotate(-0.7deg) scale(1.018); }
+  67% { transform: translateY(-4px) rotate(0.55deg) scale(1.008); }
+  100% { transform: translateY(0) rotate(0) scale(1); }
+}
+
+@keyframes petWholeRecovery {
+  0% { transform: translateY(1px) rotate(-0.7deg) scale(1); }
+  54% { transform: translateY(-15px) rotate(1.4deg) scale(1.014); }
+  100% { transform: translateY(0) rotate(0) scale(1); }
+}
+
+@keyframes petWholeCelebrate {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  28% { transform: translateY(-5px) rotate(-2deg); }
+  62% { transform: translateY(-8px) rotate(2.2deg); }
+}
+
+@keyframes izumiCarryFloat {
+  0%, 100% { transform: translateY(0) rotate(-0.7deg); }
+  50% { transform: translateY(-3px) rotate(0.8deg); }
+}
+
+@keyframes izumiWholeIdle {
+  0%, 100% { transform: translateY(0) rotate(-0.35deg) scale(1); }
+  50% { transform: translateY(-2px) rotate(0.45deg) scale(1.006); }
+}
+
+@keyframes izumiWholeWalk {
+  0%, 100% { transform: translateY(0) rotate(-1.2deg) scale(1); }
+  25% { transform: translateY(-4px) rotate(0.8deg) scale(1.008); }
+  50% { transform: translateY(0) rotate(1.2deg) scale(1); }
+  75% { transform: translateY(-4px) rotate(-0.8deg) scale(1.008); }
+}
+
+@keyframes izumiWholeHappy {
+  0%, 100% { transform: translateY(0) rotate(-1.6deg) scale(1); }
+  50% { transform: translateY(-7px) rotate(1.6deg) scale(1.018); }
+}
+
+@keyframes izumiWholeCheer {
+  0%, 100% { transform: translateY(0) rotate(-2deg) scale(1); }
+  45% { transform: translateY(-9px) rotate(2deg) scale(1.022); }
+}
+
+@keyframes izumiWholeJump {
+  0%, 100% { transform: translateY(0) rotate(0) scale(1); }
+  14% { transform: translateY(2px) rotate(-1deg) scale(0.99); }
+  48% { transform: translateY(-34px) rotate(1.5deg) scale(1.015); }
+  74% { transform: translateY(1px) rotate(-0.6deg) scale(1); }
+}
+
+@keyframes izumiWholeSleep {
+  0%, 100% { transform: translateY(3px) rotate(1.2deg) scale(0.992); }
+  50% { transform: translateY(4px) rotate(1.8deg) scale(1); }
+}
+
+@keyframes izumiWholeDrowsy {
+  0%, 100% { transform: translateY(1px) rotate(-1.2deg) scale(1); }
+  52% { transform: translateY(4px) rotate(2deg) scale(0.995); }
+}
+
+@keyframes izumiWholePainting {
+  0%, 100% { transform: translateY(0) rotate(-0.45deg) scale(1); }
+  45% { transform: translateY(-3px) rotate(0.7deg) scale(1.006); }
+  72% { transform: translateY(-1px) rotate(-0.2deg) scale(1.003); }
+}
+
+@keyframes izumiWholeHeart {
+  0%, 100% { transform: translateY(0) rotate(-0.6deg) scale(1); }
+  50% { transform: translateY(-6px) rotate(0.6deg) scale(1.012); }
+}
+
+@keyframes sparkle {
+  from { transform: scale(0.82); opacity: 0.55; }
+  to { transform: scale(1.04); opacity: 1; }
+}
+
+@keyframes zzzFloat {
+  0%, 100% { transform: translate(0, 3px); opacity: 0.55; }
+  50% { transform: translate(3px, -4px); opacity: 1; }
+}
+
+@keyframes marksPulse {
+  0%, 100% { transform: translateX(7px); opacity: 0.25; }
+  50% { transform: translateX(-2px); opacity: 0.9; }
+}
+
+@media (max-width: 720px), (max-height: 650px) {
+  .petButton {
+    right: 12px;
+    bottom: 14px;
+    width: 122px;
+  }
+
+  .petButton[data-species="izumi"] { width: 124px; }
+
+  .bubble {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 560px) {
+  .petButton {
+    width: 108px;
+    opacity: 0.96;
+  }
+
+  .petButton[data-species="izumi"] { width: 112px; }
+}
+
+@media (pointer: coarse) {
+  .petButton { width: 116px; }
+  .petButton[data-species="izumi"] { width: 114px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .petLayer *,
+  .petLayer *::before,
+  .petLayer *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
