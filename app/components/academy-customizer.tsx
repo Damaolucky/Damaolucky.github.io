@@ -87,6 +87,7 @@ const PET_TURN_TOTAL_MS = 420;
 const PET_TURN_FIRST_FRAME_MS = 48;
 const PET_TURN_FRAME_INTERVAL_MS = 64;
 const PET_TURN_SETTLE_MS = 372;
+const PET_HOLD_MS = 200;
 const PET_PICKUP_ART_MS = 52;
 const PET_LIFT_MS = 188;
 const PET_DROP_MS = 160;
@@ -241,6 +242,7 @@ function AcademyPet() {
   const walkTimerRef = useRef<number | null>(null);
   const turnTimersRef = useRef<number[]>([]);
   const turnTokenRef = useRef(0);
+  const holdTimerRef = useRef<number | null>(null);
   const liftArtTimerRef = useRef<number | null>(null);
   const liftEndTimerRef = useRef<number | null>(null);
   const dropTimerRef = useRef<number | null>(null);
@@ -316,12 +318,14 @@ function AcademyPet() {
   }, [scheduleBubblePosition]);
 
   const clearDragTimers = useCallback(() => {
+    if (holdTimerRef.current !== null) window.clearTimeout(holdTimerRef.current);
     if (liftArtTimerRef.current !== null) window.clearTimeout(liftArtTimerRef.current);
     if (liftEndTimerRef.current !== null) window.clearTimeout(liftEndTimerRef.current);
     if (dropTimerRef.current !== null) window.clearTimeout(dropTimerRef.current);
     if (landingTimerRef.current !== null) window.clearTimeout(landingTimerRef.current);
     if (recoveryTimerRef.current !== null) window.clearTimeout(recoveryTimerRef.current);
     if (celebrationTimerRef.current !== null) window.clearTimeout(celebrationTimerRef.current);
+    holdTimerRef.current = null;
     liftArtTimerRef.current = null;
     liftEndTimerRef.current = null;
     dropTimerRef.current = null;
@@ -934,8 +938,8 @@ function AcademyPet() {
         data-species="izumi"
         type="button"
         tabIndex={visibilityPhase === "visible" ? 0 : -1}
-        aria-label="Izumi Sakurai companion. Click for another action. Press and drag to move her immediately."
-        title="Click to say hello · Press and drag to move Izumi"
+        aria-label="Izumi Sakurai companion. Click for another action. Hold for 0.2 seconds, then drag to move her."
+        title="Click to say hello · Hold 0.2 seconds, then drag to move Izumi"
         onPointerDown={(event) => {
           if (event.pointerType !== "mouse" || event.button !== 0 || !event.isPrimary) return;
           if (visibilityPhaseRef.current !== "visible") return;
@@ -956,13 +960,43 @@ function AcademyPet() {
             airFrame: facingRef.current === "left" ? 2 : 3,
             hasMoved: false,
           };
-          beginDrag(event.pointerId);
+          try {
+            if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+              event.currentTarget.setPointerCapture(event.pointerId);
+            }
+          } catch {
+            // Pointer capture keeps the pending hold stable outside the button.
+          }
+          holdTimerRef.current = window.setTimeout(() => {
+            const session = dragSessionRef.current;
+            holdTimerRef.current = null;
+            if (!session || session.pointerId !== event.pointerId || session.hasMoved) return;
+            session.hasMoved = true;
+            suppressClickRef.current = true;
+            beginDrag(event.pointerId);
+          }, PET_HOLD_MS);
         }}
         onPointerMove={(event) => {
           const session = dragSessionRef.current;
           if (!session || session.pointerId !== event.pointerId) return;
           session.lastClientX = event.clientX;
           session.lastClientY = event.clientY;
+          if (dragPhaseRef.current === "idle") {
+            const deltaX = event.clientX - session.dragStartClientX;
+            const deltaY = event.clientY - session.dragStartClientY;
+            if (
+              deltaX * deltaX + deltaY * deltaY
+              >= PET_DRAG_MOVE_THRESHOLD * PET_DRAG_MOVE_THRESHOLD
+            ) {
+              session.hasMoved = true;
+              suppressClickRef.current = true;
+              if (holdTimerRef.current !== null) {
+                window.clearTimeout(holdTimerRef.current);
+                holdTimerRef.current = null;
+              }
+            }
+            return;
+          }
           if (!session.hasMoved) {
             const deltaX = event.clientX - session.dragStartClientX;
             const deltaY = event.clientY - session.dragStartClientY;
@@ -981,6 +1015,21 @@ function AcademyPet() {
         onPointerUp={(event) => {
           const session = dragSessionRef.current;
           if (!session || session.pointerId !== event.pointerId) return;
+          if (dragPhaseRef.current === "idle") {
+            if (holdTimerRef.current !== null) {
+              window.clearTimeout(holdTimerRef.current);
+              holdTimerRef.current = null;
+            }
+            dragSessionRef.current = null;
+            try {
+              if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+              }
+            } catch {
+              // The browser may release capture before this handler finishes.
+            }
+            return;
+          }
           if (!session.hasMoved) {
             const deltaX = event.clientX - session.dragStartClientX;
             const deltaY = event.clientY - session.dragStartClientY;

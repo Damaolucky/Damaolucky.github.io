@@ -581,6 +581,8 @@ test("keeps Izumi's drag, illustrated turn, and crisp bubble interactions cohere
   ]);
   const source = `${component}\n${css}`;
   const pointerDown = component.match(/onPointerDown=\{\(event\) => \{([\s\S]*?)\n\s*\}\}\s*\n\s*onPointerMove/)?.[1] ?? "";
+  const pointerMove = component.match(/onPointerMove=\{\(event\) => \{([\s\S]*?)\n\s*\}\}\s*\n\s*onPointerUp/)?.[1] ?? "";
+  const pointerUp = component.match(/onPointerUp=\{\(event\) => \{([\s\S]*?)\n\s*\}\}\s*\n\s*onPointerCancel/)?.[1] ?? "";
   const click = component.match(/onClick=\{\(event\) => \{([\s\S]*?)\n\s*\}\}\s*\n\s*>/)?.[1] ?? "";
   const beginTurn = component.match(/const beginTurn = useCallback\(\(nextFacing:[\s\S]*?\n\s*\}, \[motionEnabled\]\);/)?.[0] ?? "";
   const startCampusWalk = component.match(/const startCampusWalk = useCallback\(\(\) => \{[\s\S]*?\n\s*\}, \[\]\);/)?.[0] ?? "";
@@ -595,14 +597,20 @@ test("keeps Izumi's drag, illustrated turn, and crisp bubble interactions cohere
   const visibleBubbleCss = css.match(/\.bubble\[data-visible="true"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
   const dragReactionCss = css.match(/\/\* Drag reactions[\s\S]*?(?=\.petLayer\[data-motion="off"\])/)?.[0] ?? "";
 
-  assert.doesNotMatch(component, /PET_LONG_PRESS_MS|longPressTimerRef|"pressing"|hold (?:and|to) drag/i);
+  assert.doesNotMatch(component, /PET_LONG_PRESS_MS|longPressTimerRef|"pressing"/);
+  assert.match(component, /PET_HOLD_MS\s*=\s*200/);
+  assert.match(component, /Hold for 0\.2 seconds, then drag to move her/);
+  assert.match(component, /Hold 0\.2 seconds, then drag to move Izumi/);
   assert.match(component, /PET_DRAG_MOVE_THRESHOLD\s*=\s*5/);
   for (const requirement of [/event\.pointerType !== "mouse"/, /event\.button !== 0/, /!event\.isPrimary/]) {
     assert.match(pointerDown, requirement);
   }
   assert.doesNotMatch(pointerDown, /!motionEnabled/);
-  assert.doesNotMatch(pointerDown, /setTimeout|PET_LONG_PRESS/);
-  assert.match(pointerDown, /beginDrag\(event\.pointerId\)/);
+  assert.match(pointerDown, /setPointerCapture\(event\.pointerId\)/);
+  assert.match(pointerDown, /holdTimerRef\.current = window\.setTimeout\([\s\S]*?session\.hasMoved = true[\s\S]*?suppressClickRef\.current = true[\s\S]*?beginDrag\(event\.pointerId\)[\s\S]*?PET_HOLD_MS/);
+  assert.match(pointerMove, /dragPhaseRef\.current === "idle"[\s\S]*?PET_DRAG_MOVE_THRESHOLD[\s\S]*?clearTimeout\(holdTimerRef\.current\)/);
+  assert.match(pointerUp, /dragPhaseRef\.current === "idle"[\s\S]*?clearTimeout\(holdTimerRef\.current\)[\s\S]*?dragSessionRef\.current = null[\s\S]*?releasePointerCapture/);
+  assert.match(component, /clearDragTimers[\s\S]*?clearTimeout\(holdTimerRef\.current\)/);
   for (const handler of ["onPointerDown", "onPointerMove", "onPointerUp", "onPointerCancel", "onLostPointerCapture"]) {
     assert.match(component, new RegExp(`${handler}=`));
   }
