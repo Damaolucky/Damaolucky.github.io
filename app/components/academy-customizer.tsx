@@ -16,6 +16,7 @@ import {
   type AcademyClickEffectDetail,
 } from "./academy-events";
 import { useMotionEnabled } from "./motion-preference";
+import { usePetVisible } from "./pet-preference";
 import styles from "./academy-customizer.module.css";
 
 type StandardPetAction = "sleep" | "move" | "happy" | "cheer" | "jump" | "drowsy";
@@ -32,6 +33,7 @@ type PetDragPhase =
 type PetDragFrame = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 type PetDragArt = "idle" | "sprite";
 type PetTurnFrame = 0 | 1 | 2 | 3 | 4;
+type PetVisibilityPhase = "hidden" | "entering" | "visible" | "exiting";
 
 type PetDragSession = {
   pointerId: number;
@@ -92,11 +94,15 @@ const PET_LAND_MS = 480;
 const PET_RECOVER_MS = 520;
 const PET_CELEBRATE_MS = 860;
 const PET_STILL_LAND_MS = 360;
+const PET_ENTRANCE_MS = 1_050;
+const PET_EXIT_MS = 980;
 const PET_DRAG_MOVE_THRESHOLD = 5;
 const PET_VIEWPORT_MARGIN = 8;
 const PET_PICKUP_COPY = "Eep—an adventure!";
 const PET_LANDING_COPY = "Soft landing… nailed it!";
 const PET_CELEBRATE_COPY = "Ta-da! My new favorite spot ✨";
+const PET_ENTRANCE_COPY = "I'm here!";
+const PET_EXIT_COPY = "See you soon!";
 
 const subscribeToHydration = () => () => undefined;
 const getHydratedSnapshot = () => true;
@@ -207,8 +213,25 @@ function IzumiReactionIllustration() {
   );
 }
 
+function IzumiAppearanceIllustration() {
+  return (
+    <span className={styles.izumiAppearanceArt}>
+      <Image
+        className={styles.izumiAppearanceSprite}
+        src="/media/izumi-appearance-sprite.png"
+        alt=""
+        width={960}
+        height={680}
+        draggable={false}
+        unoptimized
+      />
+    </span>
+  );
+}
+
 function AcademyPet() {
   const motionEnabled = useMotionEnabled();
+  const petVisible = usePetVisible();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const bubbleRef = useRef<HTMLSpanElement>(null);
   const bubbleRafRef = useRef<number | null>(null);
@@ -224,6 +247,7 @@ function AcademyPet() {
   const landingTimerRef = useRef<number | null>(null);
   const recoveryTimerRef = useRef<number | null>(null);
   const celebrationTimerRef = useRef<number | null>(null);
+  const appearanceTimerRef = useRef<number | null>(null);
   const actionIndexRef = useRef(0);
   const autoActionIndexRef = useRef(0);
   const facingRef = useRef<"left" | "right">("left");
@@ -234,6 +258,7 @@ function AcademyPet() {
   const userYRef = useRef(0);
   const dragPhaseRef = useRef<PetDragPhase>("idle");
   const dragSessionRef = useRef<PetDragSession | null>(null);
+  const visibilityPhaseRef = useRef<PetVisibilityPhase>(petVisible ? "entering" : "hidden");
   const suppressClickRef = useRef(false);
   const [action, setAction] = useState<PetAction>("idle");
   const [dragPhase, setDragPhase] = useState<PetDragPhase>("idle");
@@ -241,6 +266,14 @@ function AcademyPet() {
   const [dragArt, setDragArt] = useState<PetDragArt>("idle");
   const [bubbleVisible, setBubbleVisible] = useState(false);
   const [reactionCopy, setReactionCopy] = useState<string | null>(null);
+  const [visibilityPhase, setVisibilityPhase] = useState<PetVisibilityPhase>(
+    petVisible ? "entering" : "hidden",
+  );
+
+  const updateVisibilityPhase = useCallback((next: PetVisibilityPhase) => {
+    visibilityPhaseRef.current = next;
+    setVisibilityPhase(next);
+  }, []);
 
   const setPetDragPhase = useCallback((next: PetDragPhase) => {
     dragPhaseRef.current = next;
@@ -323,6 +356,7 @@ function AcademyPet() {
     const button = buttonRef.current;
     if (
       !button
+      || visibilityPhaseRef.current !== "visible"
       || dragPhaseRef.current !== "idle"
       || dragSessionRef.current !== null
       || nextFacing === facingRef.current
@@ -388,7 +422,11 @@ function AcademyPet() {
 
   const startCampusWalk = useCallback(() => {
     const button = buttonRef.current;
-    if (!button || dragPhaseRef.current !== "idle") return;
+    if (
+      !button
+      || visibilityPhaseRef.current !== "visible"
+      || dragPhaseRef.current !== "idle"
+    ) return;
 
     const maxTravel = Math.min(220, Math.max(88, window.innerWidth * 0.16));
     const baseLeft = button.offsetLeft + userXRef.current;
@@ -416,7 +454,11 @@ function AcademyPet() {
   }, []);
 
   const runAction = useCallback((next: StandardPetAction) => {
-    if (!motionEnabled || dragPhaseRef.current !== "idle") return;
+    if (
+      !motionEnabled
+      || visibilityPhaseRef.current !== "visible"
+      || dragPhaseRef.current !== "idle"
+    ) return;
     clearActionTimers();
     setReactionCopy(null);
     actionRef.current = next;
@@ -444,11 +486,14 @@ function AcademyPet() {
 
   const scheduleAutoAction = useCallback(function schedule(afterAction = 0) {
     if (autoTimerRef.current !== null) window.clearTimeout(autoTimerRef.current);
-    if (!motionEnabled) return;
+    if (!motionEnabled || !petVisible) return;
 
     const quietTime = AUTO_ACTION_MIN + Math.random() * AUTO_ACTION_RANGE;
     autoTimerRef.current = window.setTimeout(() => {
-      if (dragPhaseRef.current !== "idle") {
+      if (
+        visibilityPhaseRef.current !== "visible"
+        || dragPhaseRef.current !== "idle"
+      ) {
         schedule(2_000);
         return;
       }
@@ -459,10 +504,14 @@ function AcademyPet() {
       runAction(next);
       schedule(ACTION_DURATION[next]);
     }, afterAction + quietTime);
-  }, [motionEnabled, runAction]);
+  }, [motionEnabled, petVisible, runAction]);
 
   const runSpecialAction = useCallback((next: SpecialPetAction) => {
-    if (dragPhaseRef.current !== "idle" || dragSessionRef.current !== null) return;
+    if (
+      visibilityPhaseRef.current !== "visible"
+      || dragPhaseRef.current !== "idle"
+      || dragSessionRef.current !== null
+    ) return;
 
     if (autoTimerRef.current !== null) window.clearTimeout(autoTimerRef.current);
     autoTimerRef.current = null;
@@ -488,17 +537,87 @@ function AcademyPet() {
   }, [clearActionTimers, clearTurnTimers, scheduleAutoAction]);
 
   useEffect(() => {
-    if (!motionEnabled) return;
+    if (appearanceTimerRef.current !== null) {
+      window.clearTimeout(appearanceTimerRef.current);
+      appearanceTimerRef.current = null;
+    }
+    if (autoTimerRef.current !== null) {
+      window.clearTimeout(autoTimerRef.current);
+      autoTimerRef.current = null;
+    }
+
+    clearActionTimers();
+    clearTurnTimers();
+    clearDragTimers();
+    actionRef.current = "idle";
+    setAction("idle");
+    setDragArt("idle");
+    setPetDragFrame(0);
+    setPetDragPhase("idle");
+
+    const button = buttonRef.current;
+    const session = dragSessionRef.current;
+    if (button && session && button.hasPointerCapture(session.pointerId)) {
+      button.releasePointerCapture(session.pointerId);
+    }
+    dragSessionRef.current = null;
+
+    if (petVisible) {
+      updateVisibilityPhase("entering");
+      setReactionCopy(PET_ENTRANCE_COPY);
+      setBubbleVisible(true);
+      appearanceTimerRef.current = window.setTimeout(() => {
+        updateVisibilityPhase("visible");
+        appearanceTimerRef.current = null;
+        bubbleTimerRef.current = window.setTimeout(() => {
+          setBubbleVisible(false);
+          setReactionCopy(null);
+          bubbleTimerRef.current = null;
+        }, 850);
+      }, PET_ENTRANCE_MS);
+    } else if (visibilityPhaseRef.current === "hidden") {
+      setBubbleVisible(false);
+      setReactionCopy(null);
+    } else {
+      updateVisibilityPhase("exiting");
+      setReactionCopy(PET_EXIT_COPY);
+      setBubbleVisible(true);
+      appearanceTimerRef.current = window.setTimeout(() => {
+        updateVisibilityPhase("hidden");
+        setBubbleVisible(false);
+        setReactionCopy(null);
+        appearanceTimerRef.current = null;
+      }, PET_EXIT_MS);
+    }
+
+    return () => {
+      if (appearanceTimerRef.current !== null) {
+        window.clearTimeout(appearanceTimerRef.current);
+        appearanceTimerRef.current = null;
+      }
+    };
+  }, [
+    clearActionTimers,
+    clearDragTimers,
+    clearTurnTimers,
+    petVisible,
+    setPetDragFrame,
+    setPetDragPhase,
+    updateVisibilityPhase,
+  ]);
+
+  useEffect(() => {
+    if (!motionEnabled || !petVisible) return;
     scheduleAutoAction();
     return () => {
       if (autoTimerRef.current !== null) window.clearTimeout(autoTimerRef.current);
       autoTimerRef.current = null;
     };
-  }, [motionEnabled, scheduleAutoAction]);
+  }, [motionEnabled, petVisible, scheduleAutoAction]);
 
   useEffect(() => {
     scheduleBubblePosition();
-  }, [action, bubbleVisible, dragPhase, reactionCopy, scheduleBubblePosition]);
+  }, [action, bubbleVisible, dragPhase, reactionCopy, scheduleBubblePosition, visibilityPhase]);
 
   useEffect(() => {
     const handleDrawingComplete = () => runSpecialAction("painting");
@@ -545,6 +664,7 @@ function AcademyPet() {
       if (
         !button
         || !Number.isFinite(detail?.clientX)
+        || visibilityPhaseRef.current !== "visible"
         || dragPhaseRef.current !== "idle"
         || actionRef.current !== "idle"
         || turningRef.current
@@ -597,6 +717,7 @@ function AcademyPet() {
     clearDragTimers();
     if (bubbleRafRef.current !== null) window.cancelAnimationFrame(bubbleRafRef.current);
     if (autoTimerRef.current !== null) window.clearTimeout(autoTimerRef.current);
+    if (appearanceTimerRef.current !== null) window.clearTimeout(appearanceTimerRef.current);
     const button = buttonRef.current;
     const session = dragSessionRef.current;
     if (button && session && button.hasPointerCapture(session.pointerId)) {
@@ -793,7 +914,12 @@ function AcademyPet() {
   ]);
 
   return (
-    <div className={styles.petLayer} data-motion={motionEnabled ? "on" : "off"}>
+    <div
+      className={styles.petLayer}
+      data-motion={motionEnabled ? "on" : "off"}
+      data-visibility={visibilityPhase}
+      aria-hidden={visibilityPhase === "hidden"}
+    >
       <button
         ref={buttonRef}
         className={styles.petButton}
@@ -807,10 +933,12 @@ function AcademyPet() {
         data-drag-art={dragArt}
         data-species="izumi"
         type="button"
+        tabIndex={visibilityPhase === "visible" ? 0 : -1}
         aria-label="Izumi Sakurai companion. Click for another action. Press and drag to move her immediately."
         title="Click to say hello · Press and drag to move Izumi"
         onPointerDown={(event) => {
           if (event.pointerType !== "mouse" || event.button !== 0 || !event.isPrimary) return;
+          if (visibilityPhaseRef.current !== "visible") return;
           if (dragPhaseRef.current !== "idle") return;
 
           clearDragTimers();
@@ -880,6 +1008,7 @@ function AcademyPet() {
         }}
         onDragStart={(event) => event.preventDefault()}
         onClick={(event) => {
+          if (visibilityPhaseRef.current !== "visible") return;
           if (suppressClickRef.current) {
             suppressClickRef.current = false;
             event.preventDefault();
@@ -897,6 +1026,7 @@ function AcademyPet() {
           </span>
           <IzumiDragIllustration />
           <IzumiTurnIllustration />
+          <IzumiAppearanceIllustration />
         </span>
       </button>
       <span

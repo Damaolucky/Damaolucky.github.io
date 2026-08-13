@@ -28,6 +28,7 @@ been recolored, reshaped, or combined with the site identity.
 | `izumi-drag-sprite.png` | Generated with the built-in ImageGen tool using the existing homepage Izumi sprite as the strict character and rendering-style reference. | Eight complete poses generated as a 4×2 magenta-key sheet, converted locally with soft edge matting and despill, then normalized into eight equal 480×680 RGBA frames without body-part rigging. | `51c24cd88120c6b90cf49c94a15fe167577773bf3756fe690f308a618a30f7b5` |
 | `izumi-turn-sprite.png` | Generated with the built-in ImageGen tool using the existing homepage Izumi sprite as the strict identity, scale, outfit, and rendering reference. | Five complete intermediate turning poses generated on a magenta key, softly matted and despilled, then normalized to equal 480×680 frames with a shared 31px head line and 663px foot baseline. Exact original idle artwork supplies both animation endpoints. | `f2fb820b3670e44fce78a0d986b63f812a08af340e1803c2d1e8c8b0cc85b0b8` |
 | `izumi-reaction-sprite.png` | Generated with the built-in ImageGen tool using the existing homepage Izumi sprite as the strict character and rendering-style reference. | Two complete artist and heart-gesture poses generated on a flat magenta key, converted locally with soft edge matting and despill, then normalized without body-part rigging into two equal 480×680 transparent frames with a shared 663px foot baseline. | `8a2b7b51e636b218b76032d0a73ecd96fc7302964976fdb0887456d37e6cd4bd` |
+| `izumi-appearance-sprite.png` | Generated with the built-in ImageGen tool using the existing homepage Izumi sprites as strict character and rendering-style references. | Two complete entrance and exit poses generated on a flat magenta key, converted locally with soft edge matting and despill, then normalized to two equal 480×680 transparent frames with matched visual scale and baseline. | `2a7c9676f7004d1478c8eaddc375bb0f07a75ce5fd61e789779d5d7156795c0b` |
 
 The generated asset is a new simplified rendering for this personal homepage;
 it does not copy or crop pixels from the reference sheet. The character and
@@ -89,4 +90,17 @@ Composition: exact uniform 2-column by 1-row sprite sheet, one complete centered
 Scene/backdrop: perfectly flat solid #ff00ff chroma-key background across the entire canvas and between cells. No shadows, gradients, texture, floor, reflection or lighting variation.
 Constraints: two coherent freshly drawn complete poses; preserve adult character identity and outfit; no body-part rig fragments; no deformation; no pose-size drift; no cropped hair, props, hands or shoes; no extra limbs or malformed hands; no cast/contact shadow; no text, labels, borders, panel dividers, watermark or signature. Do not use #ff00ff anywhere in the character or props.
 Avoid: photorealism, 3D rendering, childish toddler anatomy, sexualization, elaborate scenery, large props, colored floating heart.
+```
+
+### Entrance-and-exit sprite generation prompt
+
+```text
+Use case: style-transfer
+Asset type: two-frame full-body desktop-pet sprite sheet, two equal cells side by side
+Primary request: Create two new, purpose-drawn full-body appearance poses for the exact same chibi girl shown in the references. Left cell is her entrance pose: stepping forward from a small lavender ribbon flourish, bright open eyes, cheerful wave, lively but graceful. Right cell is her exit pose: turning three-quarters away while looking back and waving goodbye, one foot beginning to step away, warm happy expression. These must be genuinely redrawn poses, not warped copies.
+Subject invariants: preserve the exact character design from the references—short light-brown bob with the same ahoge, large brown eyes, mint-green cardigan, pale cream collared blouse, camel/tan ankle-length skirt with ruffled hem, white socks, beige Mary Jane shoes, same chibi head/body proportions, face construction, line weight, soft cel shading, and color palette. Keep both figures the same visual scale, head size, body length, baseline, and center alignment inside their cells so switching poses never jumps.
+Composition: exactly two equal cells in one horizontal sheet; one complete character per cell; generous even padding; no overlap; no cropping; both feet visible; minimal small lavender ribbon/petal accents may accompany each pose but must not cross cell boundaries.
+Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for background removal. The background must be one uniform color with no shadows, gradients, texture, floor plane, or lighting variation. Do not use #ff00ff anywhere in the subject.
+Text: none.
+Constraints: clean production sprite art, crisp antialiased edges, no cast shadow, no contact shadow, no reflection, no panel borders, no grid, no labels, no watermark, no signature. Preserve character identity and outfit exactly.
 ```

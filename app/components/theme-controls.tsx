@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { setMotionPreference, useMotionEnabled } from "./motion-preference";
+import { setPetPreference, usePetVisible } from "./pet-preference";
 
 type Theme = "light" | "dark";
 
@@ -96,6 +97,23 @@ export function MotionToggle({ className = "" }: { className?: string }) {
     >
       <span aria-hidden="true">{enabled ? "Ⅱ" : "▶"}</span>
       <span suppressHydrationWarning>{enabled ? "Motion" : "Still"}</span>
+    </button>
+  );
+}
+
+export function PetToggle({ className = "" }: { className?: string }) {
+  const visible = usePetVisible();
+
+  return (
+    <button
+      className={className}
+      type="button"
+      onClick={() => setPetPreference(!visible)}
+      aria-label={visible ? "Hide Izumi desktop pet" : "Show Izumi desktop pet"}
+      aria-pressed={visible}
+    >
+      <span aria-hidden="true">{visible ? "ฅ" : "○"}</span>
+      <span>{visible ? "Pet" : "Pet off"}</span>
     </button>
   );
 }

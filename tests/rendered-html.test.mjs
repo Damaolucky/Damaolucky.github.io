@@ -42,12 +42,31 @@ test("renders the final Lavender Academy homepage at the canonical root", async 
   assert.match(html, /href="#work">Work/);
   assert.doesNotMatch(html, /Open appearance choices|Look/);
   assert.match(html, /Turn motion (?:off|on)/);
+  assert.match(html, /Hide Izumi desktop pet/);
   assert.match(html, /Switch to dark mode/);
   assert.match(html, /Last updated: August 12, 2026/);
   assert.ok(html.indexOf("Recent notes") < html.indexOf("Selected work"), "news comes first");
   assert.match(html, /Outside research, I enjoy animation/);
   assert.doesNotMatch(html, /2025\.Fall|Academic Excellence Scholarship/);
   assert.doesNotMatch(html, /V1 visual variants|data-v1-variant|五套可爱版本|丝带编辑部|猫咪研究社|原画工作台|兔兔图书室/);
+});
+
+test("prevents browser translation from mutating English text before hydration", async () => {
+  const [layout, profilePage] = await Promise.all([
+    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/profile.tsx", import.meta.url), "utf8"),
+  ]);
+  const response = await render("/");
+  const html = await response.text();
+
+  assert.match(layout, /<html[\s\S]*?lang="en"[\s\S]*?className="notranslate"[\s\S]*?translate="no"/);
+  assert.match(layout, /<meta name="google" content="notranslate" \/>/);
+  assert.match(layout, /<body className="notranslate" translate="no">/);
+  assert.match(profilePage, /className=\{`\$\{styles\.page\} notranslate`\}[\s\S]*?translate="no"/);
+  assert.match(html, /<meta[^>]*name="google"[^>]*content="notranslate"/);
+  assert.match(html, /<html[^>]*class="notranslate"[^>]*translate="no"/);
+  assert.match(html, /Skip to selected work/);
+  assert.doesNotMatch(html, /跳至所选作品/);
 });
 
 test("redirects the legacy /v1 URL to the canonical homepage", async () => {
@@ -68,7 +87,7 @@ test("returns About to the page top and highlights the current section while scr
   const navHtml = html.match(/<nav[^>]*aria-label="Primary navigation"[^>]*>([\s\S]*?)<\/nav>/)?.[1] ?? "";
 
   assert.match(pageSource, /<SectionNav className=\{styles\.primaryNav\} \/>/);
-  assert.match(pageSource, /className=\{styles\.page\}[\s\S]*?id="top"/);
+  assert.match(pageSource, /className=\{`\$\{styles\.page\} notranslate`\}[\s\S]*?id="top"/);
   assert.doesNotMatch(pageSource, /data-(?:academy-page|backdrop|page-font|heart|pet|topic)=/);
   assert.doesNotMatch(pageSource, /<main[^>]*id="top"/);
   assert.match(navHtml, /href="#top"[^>]*aria-current="location"[^>]*>About<\/a>/);
@@ -228,8 +247,9 @@ test("uses Lavender as the only page background and removes the background switc
 
   await assert.rejects(access(new URL("../app/components/background-toggle.tsx", import.meta.url)));
   assert.ok(displayPreferences, "display preferences are rendered");
-  assert.equal((displayPreferences.match(/<button\b/g) ?? []).length, 2);
+  assert.equal((displayPreferences.match(/<button\b/g) ?? []).length, 3);
   assert.match(displayPreferences, /Turn motion (?:off|on)/);
+  assert.match(displayPreferences, /Hide Izumi desktop pet/);
   assert.match(displayPreferences, /Switch to dark mode/);
   assert.doesNotMatch(html, /aria-label="Use (?:white|lavender) page background"/i);
   assert.doesNotMatch(html, />White<\/span>/i);
@@ -242,6 +262,74 @@ test("uses Lavender as the only page background and removes the background switc
   assert.match(darkPage, /--bg: #1c1823/);
   assert.doesNotMatch(css, /--bg:\s*#ffffff/i);
   assert.doesNotMatch(css, /data-background|backgroundPreferenceButton/);
+});
+
+test("shows Izumi by default and gives her illustrated entrance and exit sequences", async () => {
+  const [layout, controls, preference, customizer, petCss, appearanceSprite, sources] = await Promise.all([
+    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/theme-controls.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/pet-preference.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/academy-customizer.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/academy-customizer.module.css", import.meta.url), "utf8"),
+    stat(new URL("../public/media/izumi-appearance-sprite.png", import.meta.url)),
+    readFile(new URL("../public/media/SOURCES.md", import.meta.url), "utf8"),
+  ]);
+  const initializationScript = layout.match(/__html:\s*`([\s\S]*?)`,/)?.[1] ?? "";
+
+  const initializePet = (savedPet) => {
+    const root = { dataset: {}, style: {} };
+    runInNewContext(initializationScript, {
+      document: { documentElement: root },
+      localStorage: {
+        getItem(key) {
+          return key === "homepage-pet" ? savedPet : null;
+        },
+      },
+      matchMedia() {
+        return { matches: false };
+      },
+    });
+    return root;
+  };
+
+  assert.equal(initializePet(null).dataset.pet, "on");
+  assert.equal(initializePet("off").dataset.pet, "off");
+  assert.match(layout, /var pet='on'/);
+  assert.match(layout, /savedPet=localStorage\.getItem\('homepage-pet'\)/);
+  assert.match(controls, /export function PetToggle/);
+  assert.match(controls, /Hide Izumi desktop pet/);
+  assert.match(controls, /Show Izumi desktop pet/);
+  assert.match(preference, /useSyncExternalStore/);
+  assert.match(preference, /\(\) => true/);
+  assert.match(preference, /homepage-pet-change/);
+  assert.match(preference, /localStorage\.setItem\("homepage-pet", value\)/);
+  assert.match(customizer, /usePetVisible\(\)/);
+  assert.match(customizer, /type PetVisibilityPhase = "hidden" \| "entering" \| "visible" \| "exiting"/);
+  assert.match(customizer, /data-visibility=\{visibilityPhase\}/);
+  assert.match(customizer, /tabIndex=\{visibilityPhase === "visible" \? 0 : -1\}/);
+  assert.match(customizer, /PET_ENTRANCE_MS\s*=\s*1_050/);
+  assert.match(customizer, /PET_EXIT_MS\s*=\s*980/);
+  assert.match(customizer, /PET_ENTRANCE_COPY\s*=\s*"I'm here!"/);
+  assert.match(customizer, /PET_EXIT_COPY\s*=\s*"See you soon!"/);
+  assert.match(customizer, /function IzumiAppearanceIllustration\(\)/);
+  assert.match(customizer, /src="\/media\/izumi-appearance-sprite\.png"/);
+  assert.match(customizer, /width=\{960\}[\s\S]*?height=\{680\}/);
+  assert.match(customizer, /updateVisibilityPhase\("entering"\)[\s\S]*?PET_ENTRANCE_COPY[\s\S]*?updateVisibilityPhase\("visible"\)/);
+  assert.match(customizer, /else if \(visibilityPhaseRef\.current === "hidden"\)[\s\S]*?setBubbleVisible\(false\)/);
+  assert.match(customizer, /updateVisibilityPhase\("exiting"\)[\s\S]*?PET_EXIT_COPY[\s\S]*?updateVisibilityPhase\("hidden"\)/);
+  assert.match(petCss, /\.petLayer\[data-visibility="hidden"\] \.stage\s*\{[\s\S]*?opacity: 0;[\s\S]*?scale: 0\.96;[\s\S]*?translate: 0 18px/);
+  assert.match(petCss, /\.petLayer\[data-visibility="hidden"\] \.petButton\s*\{[\s\S]*?pointer-events: none;[\s\S]*?visibility: hidden/);
+  assert.match(petCss, /data-visibility="entering"\][\s\S]*?izumiAppearanceEnter 1\.05s/);
+  assert.match(petCss, /data-visibility="exiting"\][\s\S]*?izumiAppearanceExit 980ms/);
+  assert.match(petCss, /@keyframes izumiAppearanceEnter/);
+  assert.match(petCss, /@keyframes izumiAppearanceExit/);
+  assert.match(petCss, /@keyframes appearancePetals/);
+  assert.match(petCss, /\.petLayer\[data-visibility="hidden"\] \.bubble\s*\{[\s\S]*?opacity: 0/);
+  assert.match(petCss, /\.petLayer\[data-motion="off"\] \.stage\s*\{[\s\S]*?transition: none/);
+  assert.doesNotMatch(`${customizer}\n${petCss}`, /izumiAppearanceHead|izumiAppearanceTorso|izumiAppearanceLower/);
+  assert.ok(appearanceSprite.size > 100_000 && appearanceSprite.size < 1_500_000, `unexpected appearance sprite size: ${appearanceSprite.size}`);
+  assert.match(sources, /izumi-appearance-sprite\.png/);
+  assert.match(sources, /Entrance-and-exit sprite generation prompt/);
 });
 
 test("uses one maintainable paper list and keeps content out of page components", async () => {

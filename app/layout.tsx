@@ -24,15 +24,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      className="notranslate"
+      translate="no"
+      suppressHydrationWarning
+    >
       <head>
+        <meta name="google" content="notranslate" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var theme='light';var motion='on';try{var savedTheme=localStorage.getItem('homepage-theme');theme=savedTheme==='dark'?'dark':'light';var savedMotion=localStorage.getItem('homepage-motion');motion=savedMotion||(matchMedia('(prefers-reduced-motion: reduce)').matches?'off':'on');}catch(e){}document.documentElement.dataset.theme=theme;document.documentElement.dataset.motion=motion;document.documentElement.style.colorScheme=theme;})();`,
+            __html: `(function(){var theme='light';var motion='on';var pet='on';try{var savedTheme=localStorage.getItem('homepage-theme');theme=savedTheme==='dark'?'dark':'light';var savedMotion=localStorage.getItem('homepage-motion');motion=savedMotion||(matchMedia('(prefers-reduced-motion: reduce)').matches?'off':'on');var savedPet=localStorage.getItem('homepage-pet');pet=savedPet==='off'?'off':'on';}catch(e){}document.documentElement.dataset.theme=theme;document.documentElement.dataset.motion=motion;document.documentElement.dataset.pet=pet;document.documentElement.style.colorScheme=theme;})();`,
           }}
         />
       </head>
-      <body>{children}</body>
+      <body className="notranslate" translate="no">{children}</body>
     </html>
   );
 }

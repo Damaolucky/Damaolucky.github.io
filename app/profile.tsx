@@ -4,7 +4,7 @@ import { AcademyCustomizer } from "./components/academy-customizer";
 import { AcademyInteractions } from "./components/academy-interactions";
 import { ProfilePortrait } from "./components/profile-portrait";
 import { SectionNav } from "./components/section-nav";
-import { MotionToggle, ThemeToggle } from "./components/theme-controls";
+import { MotionToggle, PetToggle, ThemeToggle } from "./components/theme-controls";
 import { papers } from "./content/papers";
 import { lastUpdated, miscText, news, profile, researchThemes, type RichTextSegment, type SchoolMarkId } from "./content/profile";
 import styles from "./profile.module.css";
@@ -99,8 +99,9 @@ function CuteDecoration() {
 export function ProfilePage() {
   return (
     <div
-      className={styles.page}
+      className={`${styles.page} notranslate`}
       id="top"
+      translate="no"
     >
       <AcademyInteractions />
       <AcademyCustomizer />
@@ -119,6 +120,7 @@ export function ProfilePage() {
         <div className={styles.topActions}>
           <div className={styles.inlineControls} aria-label="Display preferences">
             <MotionToggle className={styles.preferenceButton} />
+            <PetToggle className={styles.preferenceButton} />
             <ThemeToggle className={styles.preferenceButton} />
           </div>
         </div>
