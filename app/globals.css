@@ -12,10 +12,16 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+:root[data-motion="off"] {
+  scroll-behavior: auto;
 }
 
 body {
-  min-width: 320px;
+  min-width: 0;
   margin: 0;
   background: #faf8fd;
   color: #20242a;

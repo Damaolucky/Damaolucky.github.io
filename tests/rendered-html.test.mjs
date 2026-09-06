@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { access, readFile, stat } from "node:fs/promises";
 import test from "node:test";
 import { runInNewContext } from "node:vm";
+import ts from "typescript";
 
 async function render(pathname = "/") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -28,8 +29,8 @@ test("renders the final Lavender Academy homepage at the canonical root", async 
   assert.match(html, /Misc/);
   assert.match(html, /Multi-view 3D Reconstruction for Ergonomic Analysis/);
   assert.match(html, /Style Transfer Models on Pokémon Images/);
-  assert.match(html, /hua-profile\.png/);
-  assert.match(html, /hua-profile-anime-clean\.png/);
+  assert.match(html, /hua-profile-768\.webp/);
+  assert.match(html, /hua-profile-anime-clean-768\.webp/);
   assert.match(html, /Prof\. Hadar Averbuch-Elor/);
   assert.match(html, /Prof\. Yin Li/);
   assert.match(html, /Prof\. Icy Zhang/);
@@ -106,7 +107,7 @@ test("returns About to the page top and highlights the current section while scr
   assert.doesNotMatch(navSource, /useState\(\(\)\s*=>[\s\S]{0,200}(?:window|document)/);
   assert.match(navCss, /\[aria-current="location"\]/);
   assert.match(pageCss, /scroll-margin-top: 96px/);
-  assert.match(pageCss, /scroll-margin-top: 82px/);
+  assert.match(pageCss, /scroll-margin-top: calc\(126px \+ env\(safe-area-inset-top, 0px\)\)/);
 });
 
 test("removes superseded routes and their obsolete implementation files", async () => {
@@ -233,6 +234,102 @@ test("defaults to bright mode, restores saved dark mode, and hydrates from a sta
   assert.match(css, /\.topbar\s*\{[\s\S]*?transition: background-color 460ms/);
 });
 
+test("keeps pet preferences consistent across resizing, storage events, and blocked storage", async () => {
+  const [source, layout] = await Promise.all([
+    readFile(new URL("../app/components/pet-preference.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+  ]);
+  const script = layout.match(/__html:\s*`([\s\S]*?)`,/)?.[1] ?? "";
+  const compiled = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS },
+  }).outputText;
+  const root = { dataset: {}, style: {} };
+  const media = Object.assign(new EventTarget(), { matches: true });
+  const values = new Map();
+  let storageBlocked = false;
+  const localStorage = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem(key, value) {
+      if (storageBlocked) throw new Error("Storage blocked");
+      values.set(key, value);
+    },
+  };
+  const window = Object.assign(new EventTarget(), {
+    localStorage,
+    matchMedia(query) {
+      assert.equal(query, "(max-width: 780px), (hover: none) and (pointer: coarse)");
+      return media;
+    },
+  });
+  const exports = {};
+  let unsubscribe;
+  let snapshot;
+  let updates = 0;
+  const context = {
+    exports, window, localStorage, document: { documentElement: root }, Event,
+    matchMedia: (query) => query.includes("max-width") ? media : { matches: false },
+    require(name) {
+      assert.equal(name, "react");
+      return {
+        useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot) {
+          assert.equal(getServerSnapshot(), true, "stable hydration snapshot");
+          snapshot = getSnapshot;
+          unsubscribe = subscribe(() => { updates += 1; });
+          return getSnapshot();
+        },
+      };
+    },
+  };
+  runInNewContext(script, context);
+  runInNewContext(compiled, context);
+  assert.equal(exports.usePetVisible(), false, "mobile bootstrap and client agree");
+  const resize = (mobile) => {
+    media.matches = mobile;
+    media.dispatchEvent(new Event("change"));
+  };
+  const storageEvent = (key, newValue) => {
+    window.dispatchEvent(Object.assign(new Event("storage"), { key, newValue }));
+  };
+
+  resize(false);
+  assert.equal(snapshot(), true, "desktop default on resize");
+  resize(true);
+  assert.equal(snapshot(), false, "mobile default on resize");
+  exports.setPetPreference(true);
+  assert.equal(snapshot(), true);
+  assert.equal(values.get("homepage-pet"), "on");
+  resize(false);
+  resize(true);
+  assert.equal(snapshot(), true, "explicit opt-in survives resizing");
+
+  storageEvent("homepage-pet", "off");
+  resize(false);
+  assert.equal(snapshot(), false, "another tab's opt-out survives resizing");
+  storageEvent("homepage-pet", null);
+  assert.equal(snapshot(), true, "removing a preference restores the desktop default");
+  resize(true);
+  assert.equal(snapshot(), false);
+  storageEvent("homepage-theme", "dark");
+  assert.equal(snapshot(), false, "unrelated storage changes are ignored");
+  storageEvent("homepage-pet", "on");
+  assert.equal(snapshot(), true);
+  storageEvent(null, null);
+  assert.equal(snapshot(), false, "clearing storage restores the mobile default");
+
+  storageBlocked = true;
+  exports.setPetPreference(true);
+  resize(false);
+  resize(true);
+  assert.equal(snapshot(), true, "page preference works with blocked storage");
+  exports.setPetPreference(false);
+  assert.equal(snapshot(), false);
+  const previousUpdates = updates;
+  unsubscribe();
+  resize(false);
+  storageEvent("homepage-pet", "on");
+  assert.equal(updates, previousUpdates, "all event listeners are cleaned up");
+});
+
 test("uses Lavender as the only page background and removes the background switch", async () => {
   const [layout, page, css] = await Promise.all([
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
@@ -264,7 +361,7 @@ test("uses Lavender as the only page background and removes the background switc
   assert.doesNotMatch(css, /data-background|backgroundPreferenceButton/);
 });
 
-test("shows Izumi by default and gives her illustrated entrance and exit sequences", async () => {
+test("defaults Izumi off on mobile, honors saved choices, and keeps entrance and exit sequences", async () => {
   const [layout, controls, preference, customizer, petCss, appearanceSprite, sources] = await Promise.all([
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/theme-controls.tsx", import.meta.url), "utf8"),
@@ -276,17 +373,18 @@ test("shows Izumi by default and gives her illustrated entrance and exit sequenc
   ]);
   const initializationScript = layout.match(/__html:\s*`([\s\S]*?)`,/)?.[1] ?? "";
 
-  const initializePet = (savedPet) => {
+  const initializePet = (savedPet, { width = 1440, touchOnly = false, storageBlocked = false } = {}) => {
     const root = { dataset: {}, style: {} };
     runInNewContext(initializationScript, {
       document: { documentElement: root },
       localStorage: {
         getItem(key) {
+          if (storageBlocked) throw new Error("Storage blocked");
           return key === "homepage-pet" ? savedPet : null;
         },
       },
-      matchMedia() {
-        return { matches: false };
+      matchMedia(query) {
+        return { matches: query === "(max-width: 780px), (hover: none) and (pointer: coarse)" && (width <= 780 || touchOnly) };
       },
     });
     return root;
@@ -294,7 +392,17 @@ test("shows Izumi by default and gives her illustrated entrance and exit sequenc
 
   assert.equal(initializePet(null).dataset.pet, "on");
   assert.equal(initializePet("off").dataset.pet, "off");
-  assert.match(layout, /var pet='on'/);
+  for (const width of [320, 375, 390, 430, 560, 768, 780]) {
+    assert.equal(initializePet(null, { width }).dataset.pet, "off", `first visit at ${width}px`);
+    assert.equal(initializePet("on", { width }).dataset.pet, "on", `explicit opt-in at ${width}px`);
+    assert.equal(initializePet("invalid", { width }).dataset.pet, "off");
+    assert.equal(initializePet(null, { width, storageBlocked: true }).dataset.pet, "off");
+  }
+  assert.equal(initializePet(null, { width: 781 }).dataset.pet, "on");
+  assert.equal(initializePet(null, { width: 932, touchOnly: true }).dataset.pet, "off", "landscape phone");
+  assert.equal(initializePet(null, { width: 1024, touchOnly: true }).dataset.pet, "off", "touch-only tablet");
+  assert.equal(initializePet("on", { touchOnly: true }).dataset.petPreference, "on");
+  assert.equal(initializePet(null).dataset.petPreference, undefined);
   assert.match(layout, /savedPet=localStorage\.getItem\('homepage-pet'\)/);
   assert.match(controls, /export function PetToggle/);
   assert.match(controls, /Hide Izumi desktop pet/);
@@ -304,6 +412,7 @@ test("shows Izumi by default and gives her illustrated entrance and exit sequenc
   assert.match(preference, /homepage-pet-change/);
   assert.match(preference, /localStorage\.setItem\("homepage-pet", value\)/);
   assert.match(customizer, /usePetVisible\(\)/);
+  assert.match(customizer, /if \(visibilityPhase === "hidden"\) return null/);
   assert.match(customizer, /type PetVisibilityPhase = "hidden" \| "entering" \| "visible" \| "exiting"/);
   assert.match(customizer, /data-visibility=\{visibilityPhase\}/);
   assert.match(customizer, /tabIndex=\{visibilityPhase === "visible" \? 0 : -1\}/);
@@ -312,7 +421,7 @@ test("shows Izumi by default and gives her illustrated entrance and exit sequenc
   assert.match(customizer, /PET_ENTRANCE_COPY\s*=\s*"I'm here!"/);
   assert.match(customizer, /PET_EXIT_COPY\s*=\s*"See you soon!"/);
   assert.match(customizer, /function IzumiAppearanceIllustration\(\)/);
-  assert.match(customizer, /src="\/media\/izumi-appearance-sprite\.png"/);
+  assert.match(customizer, /src="\/media\/izumi-appearance-sprite\.webp"/);
   assert.match(customizer, /width=\{960\}[\s\S]*?height=\{680\}/);
   assert.match(customizer, /updateVisibilityPhase\("entering"\)[\s\S]*?PET_ENTRANCE_COPY[\s\S]*?updateVisibilityPhase\("visible"\)/);
   assert.match(customizer, /else if \(visibilityPhaseRef\.current === "hidden"\)[\s\S]*?setBubbleVisible\(false\)/);
@@ -376,7 +485,7 @@ test("renders a two-paragraph biography with official school marks and linked me
   for (const school of ["University of Wisconsin–Madison", "Cornell Tech", "Shandong University"]) {
     assert.match(bio, new RegExp(`<strong>${school}`));
   }
-  for (const icon of ["sdu.png", "uw-madison.svg", "cornell-tech.svg"]) {
+  for (const icon of ["sdu-96.webp", "uw-madison.svg", "cornell-tech.svg"]) {
     assert.match(bio, new RegExp(icon.replaceAll(".", "\\.")));
   }
   for (const link of [
@@ -396,7 +505,7 @@ test("renders a two-paragraph biography with official school marks and linked me
   assert.match(css, /\.schoolMark\s*\{[\s\S]*?vertical-align:/);
 });
 
-test("implements smooth 0.2-second drawing and bounded lavender click motifs", async () => {
+test("implements smooth 0.1-second drawing and bounded lavender click motifs", async () => {
   const [component, css, customizer, events] = await Promise.all([
     readFile(new URL("../app/components/academy-interactions.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/academy-interactions.module.css", import.meta.url), "utf8"),
@@ -405,14 +514,14 @@ test("implements smooth 0.2-second drawing and bounded lavender click motifs", a
   ]);
   const source = `${component}\n${css}`;
 
-  assert.match(component, /LONG_PRESS_MS = 200/);
+  assert.match(component, /LONG_PRESS_MS = 100/);
   assert.match(component, /STROKE_HOLD_MS = 2_000/);
   assert.match(component, /STROKE_FADE_MS = 900/);
   assert.match(component, /requestAnimationFrame/);
   assert.match(component, /quadraticCurveTo/);
   assert.match(component, /getCoalescedEvents/);
   assert.match(component, /devicePixelRatio/);
-  assert.match(component, /Math\.min\([^;]*, 3\)/);
+  assert.match(component, /Math\.sqrt\(4_000_000 \/ \(width \* height\)\)/);
   assert.match(component, /pointerType === "mouse"/);
   assert.match(component, /INTERACTIVE_SELECTOR/);
   assert.match(component, /EFFECT_EXCLUSION_SELECTOR/);
@@ -501,7 +610,7 @@ test("routes completed paintings and the brand heart to dedicated full-body Izum
   assert.equal(reactionSprite.readUInt32BE(20), 680);
   assert.ok(reactionSprite.byteLength > 50_000 && reactionSprite.byteLength < 500_000);
   assert.match(customizer, /function IzumiReactionIllustration\(\)/);
-  assert.match(specialArt, /src="\/media\/izumi-reaction-sprite\.png"/);
+  assert.match(specialArt, /src="\/media\/izumi-reaction-sprite\.webp"/);
   assert.match(specialArt, /width=\{960\}/);
   assert.match(specialArt, /height=\{680\}/);
   assert.match(customizer, /<IzumiReactionIllustration \/>/);
@@ -533,13 +642,16 @@ test("locks the selected appearance and keeps Izumi as the only visible companio
   assert.doesNotMatch(component, /localStorage|academy-page-font|academy-brand-heart|dataset\.pageFont|dataset\.heart/);
   assert.match(component, /cheer: "Hi! www"/);
   assert.match(component, /data\.facing|dataset\.facing/);
-  assert.match(component, /sakurai-izumi-pet\.png/);
+  assert.match(component, /izumi-idle-sprite\.webp/);
   assert.match(component, /IZUMI_FRAME_WIDTH = 480/);
   assert.match(component, /IZUMI_FRAME_HEIGHT = 680/);
-  assert.match(component, /IZUMI_CROP_TOP = 70/);
-  assert.match(component, /\[-40, -7, 24, 45\]/);
-  assert.match(component, /width="1921"/);
-  assert.match(component, /height="819"/);
+  assert.doesNotMatch(component, /IZUMI_CROP_TOP|IZUMI_FRAME_OFFSETS|sakurai-izumi-pet\.png/);
+  assert.match(component, /width=\{IZUMI_FRAME_WIDTH \* 4\}[\s\S]*?height=\{IZUMI_FRAME_HEIGHT\}/);
+  assert.match(css, /\.izumiSprite\s*\{[\s\S]*?width:\s*400%[\s\S]*?height:\s*100%/);
+  for (const frame of [0, 1, 2, 3]) {
+    assert.match(css, new RegExp(`\.izumiFrame\\[data-frame="${frame}"\\]`));
+  }
+  assert.doesNotMatch(component, /height="819"/);
   assert.doesNotMatch(component, /izumiHead|izumiTorso|izumiLower|clipPath/);
   assert.match(component, /--pet-roam-x/);
   assert.match(component, /startCampusWalk/);
@@ -557,7 +669,7 @@ test("locks the selected appearance and keeps Izumi as the only visible companio
   assert.doesNotMatch(component, /CatIllustration|BunnyIllustration|MochiIllustration|AcademyPetKind/);
   assert.match(component, /useMotionEnabled/);
   assert.match(css, /position: fixed/);
-  assert.match(css, /shape-rendering: geometricPrecision/);
+  assert.match(css, /image-rendering: auto/);
   assert.match(css, /@keyframes izumiWholeIdle/);
   assert.match(css, /@keyframes izumiWholeWalk/);
   assert.doesNotMatch(css, /@keyframes petTurnCollapse|@keyframes petTurnExpand/);
@@ -576,7 +688,7 @@ test("keeps Izumi's drag, illustrated turn, and crisp bubble interactions cohere
     readFile(new URL("../app/components/academy-customizer.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/academy-customizer.module.css", import.meta.url), "utf8"),
     readFile(new URL("../app/components/academy-interactions.tsx", import.meta.url), "utf8"),
-    stat(new URL("../public/media/izumi-drag-sprite.png", import.meta.url)),
+    stat(new URL("../public/media/izumi-drag-sprite-v2.png", import.meta.url)),
     stat(new URL("../public/media/izumi-turn-sprite.png", import.meta.url)),
   ]);
   const source = `${component}\n${css}`;
@@ -597,10 +709,12 @@ test("keeps Izumi's drag, illustrated turn, and crisp bubble interactions cohere
   const visibleBubbleCss = css.match(/\.bubble\[data-visible="true"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
   const dragReactionCss = css.match(/\/\* Drag reactions[\s\S]*?(?=\.petLayer\[data-motion="off"\])/)?.[0] ?? "";
 
+  const dragMotionCss = css.match(/@keyframes petWholePickup[\s\S]*?(?=@keyframes izumiWholeIdle)/)?.[0] ?? "";
+
   assert.doesNotMatch(component, /PET_LONG_PRESS_MS|longPressTimerRef|"pressing"/);
-  assert.match(component, /PET_HOLD_MS\s*=\s*200/);
-  assert.match(component, /Hold for 0\.2 seconds, then drag to move her/);
-  assert.match(component, /Hold 0\.2 seconds, then drag to move Izumi/);
+  assert.match(component, /PET_HOLD_MS\s*=\s*100/);
+  assert.match(component, /Hold for 0\.1 seconds, then drag to move her/);
+  assert.match(component, /Hold 0\.1 seconds, then drag to move Izumi/);
   assert.match(component, /PET_DRAG_MOVE_THRESHOLD\s*=\s*5/);
   for (const requirement of [/event\.pointerType !== "mouse"/, /event\.button !== 0/, /!event\.isPrimary/]) {
     assert.match(pointerDown, requirement);
@@ -632,7 +746,7 @@ test("keeps Izumi's drag, illustrated turn, and crisp bubble interactions cohere
     /setPetDragFrame\(4\)[\s\S]*?setPetDragPhase\("dropping"\)[\s\S]*?setPetDragFrame\(5\)[\s\S]*?setPetDragPhase\("landing"\)[\s\S]*?setPetDragFrame\(6\)[\s\S]*?setPetDragPhase\("recovering"\)[\s\S]*?setDragArt\("idle"\)[\s\S]*?setPetDragPhase\("celebrating"\)[\s\S]*?setPetDragFrame\(0\)[\s\S]*?setPetDragPhase\("idle"\)/,
   );
   assert.doesNotMatch(component, /setPetDragFrame\(7\)/);
-  assert.match(component, /src="\/media\/izumi-drag-sprite\.png"/);
+  assert.match(component, /src="\/media\/izumi-drag-sprite-v2\.webp"/);
   assert.match(component, /width=\{1920\}[\s\S]*?height=\{1360\}/);
   assert.match(component, /airFrame: 2 \| 3/);
   assert.match(pointerDown, /airFrame: facingRef\.current === "left" \? 2 : 3/);
@@ -674,7 +788,7 @@ test("keeps Izumi's drag, illustrated turn, and crisp bubble interactions cohere
     assert.match(css, new RegExp(`data-turn-frame="${frame}"`));
   }
   assert.match(component, /function IzumiTurnIllustration\(\)/);
-  assert.match(component, /src="\/media\/izumi-turn-sprite\.png"/);
+  assert.match(component, /src="\/media\/izumi-turn-sprite\.webp"/);
   assert.match(component, /width=\{2400\}[\s\S]*?height=\{680\}/);
   assert.match(component, /<span className=\{styles\.facing\}>[\s\S]*?<IzumiIllustration \/>[\s\S]*?<IzumiReactionIllustration \/>[\s\S]*?<\/span>\s*<IzumiDragIllustration \/>\s*<IzumiTurnIllustration \/>/);
   assert.match(turnSpriteCss, /width:\s*500%/);
@@ -727,6 +841,8 @@ test("keeps Izumi's drag, illustrated turn, and crisp bubble interactions cohere
   }
   assert.match(css, /data-drag-art="sprite"\] \.izumiDragArt/);
   assert.doesNotMatch(dragReactionCss, /scaleX|scaleY|izumiHead|izumiTorso|izumiLower|clipPath/);
+  assert.doesNotMatch(dragMotionCss, /scale\(|rotate\(/);
+  assert.match(component, /const roundedX = Math\.round\(x\)[\s\S]*?const roundedY = Math\.round\(y\)/);
   assert.doesNotMatch(source, /izumiHead|izumiTorso|izumiLower|clipPath/);
   assert.match(css, /\.petLayer\[data-motion="off"\] \.petButton\s*\{[\s\S]*?var\(--pet-user-x\)[\s\S]*?var\(--pet-user-y\)[\s\S]*?transition:\s*none/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.petLayer/);
@@ -776,8 +892,7 @@ test("keeps the requested text comfortably legible and responsive", async () => 
     assert.match(css, new RegExp(`span:nth-child\\(${decoration}\\)`));
   }
   assert.doesNotMatch(css, /\.edgeDecorations\s*\{[\s\S]*?position: fixed/);
-  assert.match(css, /data-portrait-mode="oval"/);
-  assert.match(css, /data-portrait-mode="clip"/);
+
   assert.doesNotMatch(css, /data-backdrop=/);
   assert.match(css, /@media \(max-width:/);
   assert.match(css, /prefers-reduced-motion/);
@@ -788,7 +903,7 @@ test("switches smoothly between direct-loaded Oval and subtitle-free Clip portra
   const [page, portrait, css, brand, brandCss] = await Promise.all([
     readFile(new URL("../app/profile.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/profile-portrait.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/profile.module.css", import.meta.url), "utf8"),
+    Promise.all([readFile(new URL("../app/profile.module.css", import.meta.url), "utf8"), readFile(new URL("../app/components/profile-portrait.module.css", import.meta.url), "utf8")]).then((parts) => parts.join("\n")),
     readFile(new URL("../app/components/academy-brand.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/academy-brand.module.css", import.meta.url), "utf8"),
   ]);
@@ -796,8 +911,8 @@ test("switches smoothly between direct-loaded Oval and subtitle-free Clip portra
   const html = await response.text();
 
   assert.match(page, /import \{ ProfilePortrait \}/);
-  assert.match(portrait, /src="\/media\/hua-profile\.png"/);
-  assert.match(portrait, /src="\/media\/hua-profile-anime-clean\.png"/);
+  assert.match(portrait, /src="\/media\/hua-profile-768\.webp"/);
+  assert.match(portrait, /src="\/media\/hua-profile-anime-clean-768\.webp"/);
   assert.match(portrait, /PORTRAIT_STORAGE_KEY/);
   assert.match(portrait, /PORTRAIT_STORAGE_KEY = "academy-profile-portrait-v2"/);
   assert.match(portrait, /useState<PortraitMode>\("clip"\)/);
@@ -807,8 +922,8 @@ test("switches smoothly between direct-loaded Oval and subtitle-free Clip portra
   assert.match(portrait, /data-academy-no-effect/);
   assert.doesNotMatch(portrait, /figcaption|Hua Zhou · UW–Madison/);
   assert.match(portrait, /unoptimized/);
-  assert.match(html, /src="\/media\/hua-profile\.png"/);
-  assert.match(html, /src="\/media\/hua-profile-anime-clean\.png"/);
+  assert.match(html, /src="\/media\/hua-profile-768\.webp"/);
+  assert.match(html, /src="\/media\/hua-profile-anime-clean-768\.webp"/);
   assert.doesNotMatch(html, /_vinext\/image\?url=%2Fmedia%2Fhua-profile/);
   assert.match(css, /data-portrait-mode="oval"/);
   assert.match(css, /data-portrait-mode="clip"/);
@@ -831,9 +946,10 @@ test("switches smoothly between direct-loaded Oval and subtitle-free Clip portra
 });
 
 test("keeps only the final homepage assets and implementation surface", async () => {
-  const [motionPreference, sources] = await Promise.all([
+  const [motionPreference, sources, idleSprite] = await Promise.all([
     readFile(new URL("../app/components/motion-preference.ts", import.meta.url), "utf8"),
     readFile(new URL("../public/media/SOURCES.md", import.meta.url), "utf8"),
+    stat(new URL("../public/media/izumi-idle-sprite.png", import.meta.url)),
   ]);
 
   assert.match(motionPreference, /prefers-reduced-motion: reduce/);
@@ -841,7 +957,9 @@ test("keeps only the final homepage assets and implementation surface", async ()
   assert.match(sources, /hua-profile\.png/);
   assert.match(sources, /hua-profile-anime-clean\.png/);
   assert.match(sources, /Built-in ImageGen precise-object edit/);
+  assert.match(sources, /izumi-idle-sprite\.png/);
   assert.doesNotMatch(sources, /fourier-series-transform|lissajous-morph|moire-clock|sprott-attractors/);
+  assert.ok(idleSprite.size > 500_000 && idleSprite.size < 1_500_000, `unexpected idle sprite size: ${idleSprite.size}`);
 
   const portrait = await stat(new URL("../public/media/hua-profile.png", import.meta.url));
   assert.ok(portrait.size > 10_000);
@@ -862,6 +980,8 @@ test("keeps only the final homepage assets and implementation surface", async ()
     "../public/media/moire-clock.gif",
     "../public/media/sprott-attractors.gif",
     "../public/media/heart-line.png",
+    "../public/media/sakurai-izumi-pet.png",
+    "../public/media/izumi-drag-sprite.png",
     "../public/og.png",
     "../public/file.svg",
     "../public/globe.svg",

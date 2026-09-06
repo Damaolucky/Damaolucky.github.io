@@ -114,7 +114,17 @@
 }
 
 @media (max-width: 780px) {
+  .brand { gap: 8px; min-width: 0; }
+  .name { display: grid; min-height: 44px; align-items: center; font-size: 14px; }
+  .mark { flex-basis: 44px; width: 44px; height: 44px; }
+}
+
+@media (max-width: 360px) {
   .name { display: none; }
+}
+
+@media (pointer: coarse) {
+  .mark { flex-basis: 44px; width: 44px; height: 44px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

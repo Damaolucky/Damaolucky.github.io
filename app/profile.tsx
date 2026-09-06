@@ -36,7 +36,7 @@ function Signal({ paper }: { paper: (typeof papers)[number] }) {
 }
 
 const SCHOOL_MARKS: Record<SchoolMarkId, { src: string; width: number; height: number }> = {
-  sdu: { src: "/media/school-icons/sdu.png", width: 1316, height: 1318 },
+  sdu: { src: "/media/school-icons/sdu-96.webp", width: 96, height: 96 },
   uwmadison: { src: "/media/school-icons/uw-madison.svg", width: 56, height: 88 },
   cornell: { src: "/media/school-icons/cornell-tech.svg", width: 512, height: 512 },
 };
@@ -101,6 +101,7 @@ export function ProfilePage() {
     <div
       className={`${styles.page} notranslate`}
       id="top"
+      tabIndex={-1}
       translate="no"
     >
       <AcademyInteractions />
@@ -128,7 +129,7 @@ export function ProfilePage() {
 
       <main className={styles.shell}>
         <aside className={styles.profileRail}>
-          <ProfilePortrait />
+          <ProfilePortrait className={styles.profilePortrait} />
           <div className={styles.railIdentity}>
             <h1>{profile.name}</h1>
             <p>{profile.role}</p>
@@ -150,7 +151,7 @@ export function ProfilePage() {
                 <ProfileIcon kind={link.id} />
               </a>
             ) : (
-              <span className={styles.profileIcon} data-disabled="true" key={link.id} role="link" aria-disabled="true" aria-label={`${link.label} — coming soon`} title={`${link.label} — coming soon`} tabIndex={0}>
+              <span className={styles.profileIcon} data-disabled="true" key={link.id} role="link" aria-disabled="true" aria-label={`${link.label} — coming soon`} title={`${link.label} — coming soon`}>
                 <ProfileIcon kind={link.id} />
               </span>
             ))}
@@ -158,7 +159,7 @@ export function ProfilePage() {
         </aside>
 
         <div className={styles.content}>
-          <section className={styles.hero} id="about" aria-labelledby="about-title">
+          <section className={styles.hero} id="about" tabIndex={-1} aria-labelledby="about-title">
             <CuteDecoration />
             <div className={styles.introHeading}>
               <span className={styles.helloBubble} aria-hidden="true">Hi!</span>
@@ -170,12 +171,12 @@ export function ProfilePage() {
             <BioText />
           </section>
 
-          <section className={styles.news} id="news" aria-labelledby="news-title">
+          <section className={styles.news} id="news" tabIndex={-1} aria-labelledby="news-title">
             <div className={styles.sectionHeading}><div><p>Updates</p><h2 id="news-title">Recent notes</h2></div></div>
-            <ol>{news.map((item) => <li key={item.date}><time>{item.date}</time><p>{item.text}</p></li>)}</ol>
+            <ol>{news.map((item) => <li key={item.date}><time dateTime={item.date.replace(".", "-")}>{item.date}</time><p>{item.text}</p></li>)}</ol>
           </section>
 
-          <section className={styles.publications} id="work" aria-labelledby="work-title">
+          <section className={styles.publications} id="work" tabIndex={-1} aria-labelledby="work-title">
             <div className={styles.sectionHeading}>
               <div><p>Research & projects</p><h2 id="work-title">Selected work</h2></div>
               <span>{papers.length} items · newest first</span>
@@ -206,7 +207,7 @@ export function ProfilePage() {
             ))}
           </section>
 
-          <section className={styles.misc} id="misc" aria-labelledby="misc-title">
+          <section className={styles.misc} id="misc" tabIndex={-1} aria-labelledby="misc-title">
             <div className={styles.sectionHeading}><div><p>A little more</p><h2 id="misc-title">Misc</h2></div></div>
             <p className={styles.miscText}>{miscText}</p>
           </section>

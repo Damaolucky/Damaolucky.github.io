@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mint-storyboard-home.damaoluckyy.chatgpt.site/sitemap.xml

@@ -24,7 +24,12 @@ painted portrait and back. The first visit opens in Bright mode; visitors can
 switch Motion/Still and Bright/Dark preferences, and an explicit Dark choice is
 remembered for later visits.
 
-Holding the primary mouse button for 200 ms on empty page space starts drawing;
+On phones and touch-only devices, Izumi starts hidden. The Pet toggle remembers
+an explicit choice; without one, the default follows the screen size and input
+device. Hidden pet artwork is not loaded. Mobile layouts keep section navigation
+visible, use larger touch targets, and account for screen safe areas.
+
+Holding the primary mouse button for 100 ms on empty page space starts drawing;
 the completed lavender line fades after two seconds and Izumi responds in her
 artist pose. The brand heart triggers her matching heart gesture. Izumi is the only desktop
 companion. Clicking her requests an action, while dragging starts immediately.
@@ -38,6 +43,13 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000/](http://localhost:3000/). Run `npm test` before
-publishing to build the site and verify the final route, content, and
-interactions.
+Open [http://localhost:3000/](http://localhost:3000/). Run `npm run check` before
+publishing: it checks lint, TypeScript, the production build, route and preference
+behavior, release assets and metadata, lossless pet image fidelity, and the
+dependency audit. `npm run assets:optimize` regenerates production images after
+editing their PNG sources.
+
+The deployment target is the existing Sites project in `.openai/hosting.json`.
+Its current audience is owner-only. Saving a release version does not publish it
+or change access. Before switching to a custom domain, update the canonical
+origin in `app/layout.tsx`, `public/robots.txt`, and `public/sitemap.xml` together.

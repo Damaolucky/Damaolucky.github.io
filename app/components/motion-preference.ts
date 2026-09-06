@@ -12,11 +12,31 @@ function getMotionSnapshot() {
 
 function subscribeToMotionPreference(callback: () => void) {
   const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const applyPreference = () => {
+    const root = document.documentElement;
+    const preference = root.dataset.motionPreference;
+    root.dataset.motion = preference === "on" || preference === "off"
+      ? preference
+      : mediaQuery.matches ? "off" : "on";
+    callback();
+  };
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key !== null && event.key !== "homepage-motion") return;
+    if (event.newValue === "on" || event.newValue === "off") {
+      document.documentElement.dataset.motionPreference = event.newValue;
+    } else {
+      delete document.documentElement.dataset.motionPreference;
+    }
+    applyPreference();
+  };
+  applyPreference();
   window.addEventListener(MOTION_PREFERENCE_EVENT, callback);
-  mediaQuery.addEventListener("change", callback);
+  window.addEventListener("storage", handleStorage);
+  mediaQuery.addEventListener("change", applyPreference);
   return () => {
     window.removeEventListener(MOTION_PREFERENCE_EVENT, callback);
-    mediaQuery.removeEventListener("change", callback);
+    window.removeEventListener("storage", handleStorage);
+    mediaQuery.removeEventListener("change", applyPreference);
   };
 }
 
@@ -27,6 +47,7 @@ export function useMotionEnabled() {
 export function setMotionPreference(enabled: boolean) {
   const value = enabled ? "on" : "off";
   document.documentElement.dataset.motion = value;
+  document.documentElement.dataset.motionPreference = value;
   try {
     window.localStorage.setItem("homepage-motion", value);
   } catch {

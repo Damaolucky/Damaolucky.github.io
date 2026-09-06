@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import styles from "../profile.module.css";
+import styles from "./profile-portrait.module.css";
 
 type PortraitMode = "oval" | "clip";
 
 const PORTRAIT_STORAGE_KEY = "academy-profile-portrait-v2";
+const PORTRAIT_SIZES = "(max-width: 360px) 80px, (max-width: 780px) 100px, (max-width: 1080px) 132px, 274px";
 
-export function ProfilePortrait() {
+export function ProfilePortrait({ className = "" }: { className?: string }) {
   const [mode, setMode] = useState<PortraitMode>("clip");
 
   useEffect(() => {
@@ -36,7 +37,7 @@ export function ProfilePortrait() {
   const nextStyle = mode === "oval" ? "anime Clip" : "painted Oval";
 
   return (
-    <figure className={styles.profilePortrait} data-portrait-mode={mode}>
+    <figure className={`${className} ${styles.profilePortrait}`} data-portrait-mode={mode}>
       <button
         className={styles.photoFrame}
         type="button"
@@ -46,25 +47,43 @@ export function ProfilePortrait() {
         onClick={togglePortrait}
       >
         <span className={styles.photoViewport}>
-          <Image
-            className={`${styles.portraitImage} ${styles.portraitPrimary}`}
-            src="/media/hua-profile.png"
-            alt={mode === "oval" ? "Illustrated profile portrait of Hua Zhou" : ""}
-            width={768}
-            height={768}
-            sizes="(max-width: 780px) 100px, (max-width: 1080px) 154px, 274px"
-            priority
-            unoptimized
-          />
-          <Image
-            className={`${styles.portraitImage} ${styles.portraitAlternate}`}
-            src="/media/hua-profile-anime-clean.png"
-            alt={mode === "clip" ? "Anime-style alternate profile portrait" : ""}
-            width={1327}
-            height={1186}
-            sizes="(max-width: 780px) 100px, (max-width: 1080px) 154px, 274px"
-            unoptimized
-          />
+          <picture>
+            <source
+              type="image/webp"
+              srcSet="/media/hua-profile-256.webp 256w, /media/hua-profile-512.webp 512w, /media/hua-profile-768.webp 768w"
+              sizes={PORTRAIT_SIZES}
+            />
+            <Image
+              className={`${styles.portraitImage} ${styles.portraitPrimary}`}
+              src="/media/hua-profile-768.webp"
+              alt={mode === "oval" ? "Illustrated profile portrait of Hua Zhou" : ""}
+              width={768}
+              height={768}
+              sizes={PORTRAIT_SIZES}
+              loading="lazy"
+              decoding="async"
+              unoptimized
+            />
+          </picture>
+          <picture>
+            <source
+              type="image/webp"
+              srcSet="/media/hua-profile-anime-clean-256.webp 256w, /media/hua-profile-anime-clean-512.webp 512w, /media/hua-profile-anime-clean-768.webp 768w"
+              sizes={PORTRAIT_SIZES}
+            />
+            <Image
+              className={`${styles.portraitImage} ${styles.portraitAlternate}`}
+              src="/media/hua-profile-anime-clean-768.webp"
+              alt={mode === "clip" ? "Anime-style alternate profile portrait" : ""}
+              width={768}
+              height={686}
+              sizes={PORTRAIT_SIZES}
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              unoptimized
+            />
+          </picture>
         </span>
         <span className={styles.photoAccent} aria-hidden="true" />
       </button>

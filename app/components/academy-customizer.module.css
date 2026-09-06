@@ -20,6 +20,7 @@
   --pet-roam-x: 0px;
   --pet-user-x: 0px;
   --pet-user-y: 0px;
+  --izumi-main-column: 0;
   --izumi-drag-column: 0;
   --izumi-drag-row: 0;
   --izumi-turn-column: 0;
@@ -88,10 +89,6 @@
   border-radius: 42% 42% 16% 16%;
 }
 
-.petButton:hover .stage {
-  filter: drop-shadow(0 10px 10px rgba(76, 57, 96, 0.14));
-}
-
 .stage,
 .facing {
   position: absolute;
@@ -110,7 +107,6 @@
     opacity 300ms ease,
     scale 440ms cubic-bezier(0.22, 0.78, 0.24, 1),
     translate 440ms cubic-bezier(0.22, 0.78, 0.24, 1);
-  will-change: transform, opacity;
 }
 
 .petLayer[data-visibility="hidden"] .stage {
@@ -288,7 +284,6 @@
 .petButton[data-turn-frame="4"] { --izumi-turn-column: 4; }
 
 .izumiArt {
-  filter: drop-shadow(0 7px 5px rgba(62, 49, 37, 0.13));
   transform-origin: 50% 94%;
   animation: izumiWholeIdle 5.2s ease-in-out infinite;
   will-change: transform;
@@ -310,7 +305,6 @@
   pointer-events: none;
   transform-origin: 50% 88%;
   visibility: hidden;
-  will-change: transform;
 }
 
 .izumiDragSprite {
@@ -335,13 +329,33 @@
 .petButton[data-drag-frame="6"] { --izumi-drag-column: 2; --izumi-drag-row: 1; }
 
 .izumiFrame {
+  position: absolute;
+  inset: 0;
   display: block;
+  overflow: hidden;
   width: 100%;
   height: 100%;
+}
+
+.izumiSprite {
+  position: absolute;
+  top: 0;
+  left: calc(var(--izumi-main-column) * -100%);
+  display: block;
+  width: 400%;
+  height: 100%;
+  max-width: none;
   overflow: hidden;
   image-rendering: auto;
-  shape-rendering: geometricPrecision;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
+
+.izumiFrame[data-frame="0"] { --izumi-main-column: 0; }
+.izumiFrame[data-frame="1"] { --izumi-main-column: 1; }
+.izumiFrame[data-frame="2"] { --izumi-main-column: 2; }
+.izumiFrame[data-frame="3"] { --izumi-main-column: 3; }
 
 .izumiMarks {
   position: absolute;
@@ -523,7 +537,7 @@
 }
 
 .petButton[data-drag-phase="dragging"] .stage {
-  transform: translateY(-10px) rotate(-1.25deg) scale(1.018);
+  transform: translateY(-10px);
 }
 
 .petButton[data-drag-phase="dropping"] .stage {
@@ -577,38 +591,38 @@
 }
 
 @keyframes petWholePickup {
-  0% { transform: translateY(-1px) rotate(-0.5deg) scale(1.006); }
-  72% { transform: translateY(-12px) rotate(-1.6deg) scale(1.022); }
-  100% { transform: translateY(-10px) rotate(-1.25deg) scale(1.018); }
+  0% { transform: translateY(-1px); }
+  72% { transform: translateY(-12px); }
+  100% { transform: translateY(-10px); }
 }
 
 @keyframes petWholeDrop {
-  0% { transform: translateY(-10px) rotate(-1.25deg) scale(1.018); }
-  100% { transform: translateY(0) rotate(0.45deg) scale(1); }
+  0% { transform: translateY(-10px); }
+  100% { transform: translateY(0); }
 }
 
 @keyframes petWholeLanding {
-  0% { transform: translateY(0) rotate(0.45deg) scale(1); }
-  34% { transform: translateY(2px) rotate(-0.7deg) scale(1.018); }
-  67% { transform: translateY(-4px) rotate(0.55deg) scale(1.008); }
-  100% { transform: translateY(0) rotate(0) scale(1); }
+  0% { transform: translateY(0); }
+  34% { transform: translateY(2px); }
+  67% { transform: translateY(-4px); }
+  100% { transform: translateY(0); }
 }
 
 @keyframes petWholeRecovery {
-  0% { transform: translateY(1px) rotate(-0.7deg) scale(1); }
-  54% { transform: translateY(-15px) rotate(1.4deg) scale(1.014); }
-  100% { transform: translateY(0) rotate(0) scale(1); }
+  0% { transform: translateY(1px); }
+  54% { transform: translateY(-15px); }
+  100% { transform: translateY(0); }
 }
 
 @keyframes petWholeCelebrate {
-  0%, 100% { transform: translateY(0) rotate(0); }
-  28% { transform: translateY(-5px) rotate(-2deg); }
-  62% { transform: translateY(-8px) rotate(2.2deg); }
+  0%, 100% { transform: translateY(0); }
+  28% { transform: translateY(-5px); }
+  62% { transform: translateY(-8px); }
 }
 
 @keyframes izumiCarryFloat {
-  0%, 100% { transform: translateY(0) rotate(-0.7deg); }
-  50% { transform: translateY(-3px) rotate(0.8deg); }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
 }
 
 @keyframes izumiWholeIdle {
@@ -697,8 +711,8 @@
 
 @media (max-width: 720px), (max-height: 650px) {
   .petButton {
-    right: 12px;
-    bottom: 14px;
+    right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: max(14px, env(safe-area-inset-bottom, 0px));
     width: 122px;
   }
 

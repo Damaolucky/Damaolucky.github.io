@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties } from "react";
 import { ACADEMY_BRAND_HEART_EVENT } from "./academy-events";
+import { useMotionEnabled } from "./motion-preference";
 import styles from "./academy-brand.module.css";
 
 const bubbles = [
@@ -15,11 +16,12 @@ const bubbles = [
 
 export function AcademyBrand() {
   const [burst, setBurst] = useState(0);
+  const motionEnabled = useMotionEnabled();
 
   const activate = () => {
-    setBurst((current) => current + 1);
+    if (motionEnabled) setBurst((current) => current + 1);
     window.dispatchEvent(new Event(ACADEMY_BRAND_HEART_EVENT));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: motionEnabled ? "smooth" : "auto" });
   };
 
   return (
@@ -42,7 +44,7 @@ export function AcademyBrand() {
           />
         </svg>
         <span className={styles.bubbles} key={burst}>
-          {burst > 0 && bubbles.map((bubble, index) => (
+          {motionEnabled && burst > 0 && bubbles.map((bubble, index) => (
             <i
               key={`${burst}-${index}`}
               style={{

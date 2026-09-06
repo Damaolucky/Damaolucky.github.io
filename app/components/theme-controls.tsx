@@ -19,7 +19,7 @@ function getThemeSnapshot(): Theme {
 
 function subscribeToThemePreference(callback: () => void) {
   const handleStorage = (event: StorageEvent) => {
-    if (event.key !== "homepage-theme") return;
+    if (event.key !== null && event.key !== "homepage-theme") return;
 
     const theme: Theme = event.newValue === "dark" ? "dark" : "light";
     document.documentElement.dataset.theme = theme;
@@ -62,7 +62,9 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     const viewTransitionDocument = document as ViewTransitionDocument;
 
     if (!reducedMotion && viewTransitionDocument.startViewTransition) {
-      viewTransitionDocument.startViewTransition(() => setThemePreference(next));
+      void viewTransitionDocument.startViewTransition(() => setThemePreference(next)).finished.catch(() => {
+        // An interrupted transition still applies the selected theme.
+      });
       return;
     }
 

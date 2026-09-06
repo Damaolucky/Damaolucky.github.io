@@ -56,7 +56,7 @@ type BurstStyle = CSSProperties & {
   "--burst-drift-x": string;
 };
 
-const LONG_PRESS_MS = 200;
+const LONG_PRESS_MS = 100;
 const STROKE_HOLD_MS = 2_000;
 const STROKE_FADE_MS = 900;
 const BURST_LIFETIME_MS = 980;
@@ -297,6 +297,19 @@ export function AcademyInteractions() {
   const motionEnabledRef = useRef(motionEnabled);
   const [bursts, setBursts] = useState<Burst[]>([]);
 
+  const sizeCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const width = Math.max(1, window.innerWidth);
+    const height = Math.max(1, window.innerHeight);
+    // Allocate a drawing surface only when drawing starts. Bound its backing
+    // pixels on large/high-density displays instead of reserving tens of MB.
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(4_000_000 / (width * height)));
+    pixelRatioRef.current = pixelRatio;
+    canvas.width = Math.max(1, Math.floor(width * pixelRatio));
+    canvas.height = Math.max(1, Math.floor(height * pixelRatio));
+  }, []);
+
   const unlockSelection = useCallback(() => {
     if (previousUserSelectRef.current === null) return;
     document.body.style.userSelect = previousUserSelectRef.current;
@@ -343,6 +356,10 @@ export function AcademyInteractions() {
     }
 
     strokesRef.current = alive;
+    if (alive.length === 0) {
+      canvas.width = 1;
+      canvas.height = 1;
+    }
     animationFrameRef.current = alive.length > 0
       ? window.requestAnimationFrame(frame)
       : null;
@@ -362,6 +379,8 @@ export function AcademyInteractions() {
       context.setTransform(1, 0, 0, 1, 0, 0);
       context.clearRect(0, 0, canvas.width, canvas.height);
       context.restore();
+      canvas.width = 1;
+      canvas.height = 1;
     }
   }, []);
 
@@ -421,6 +440,7 @@ export function AcademyInteractions() {
 
     pending.timer = null;
     pending.drawing = true;
+    sizeCanvas();
     const stroke: InkStroke = {
       points: [{ x: pending.startX, y: pending.startY }],
       endedAt: null,
@@ -437,7 +457,7 @@ export function AcademyInteractions() {
     activeStrokeRef.current = stroke;
     lockSelection();
     requestPaint();
-  }, [lockSelection, requestPaint]);
+  }, [lockSelection, requestPaint, sizeCanvas]);
 
   const appendPointerPoints = useCallback((event: PointerEvent) => {
     const stroke = activeStrokeRef.current;
@@ -481,24 +501,24 @@ export function AcademyInteractions() {
 
   useEffect(() => {
     const resizeCanvas = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const pixelRatio = Math.min(Math.max(window.devicePixelRatio || 1, 1), 3);
-      const width = Math.max(1, window.innerWidth);
-      const height = Math.max(1, window.innerHeight);
-      pixelRatioRef.current = pixelRatio;
-      canvas.width = Math.round(width * pixelRatio);
-      canvas.height = Math.round(height * pixelRatio);
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
+      if (strokesRef.current.length === 0) return;
+      sizeCanvas();
       requestPaint();
     };
 
-    resizeCanvas();
     window.addEventListener("resize", resizeCanvas, { passive: true });
     return () => window.removeEventListener("resize", resizeCanvas);
-  }, [requestPaint]);
+  }, [requestPaint, sizeCanvas]);
+
+  useEffect(() => {
+    const pauseWhenHidden = () => {
+      if (!document.hidden) return;
+      clearDrawing();
+      clearBursts();
+    };
+    document.addEventListener("visibilitychange", pauseWhenHidden);
+    return () => document.removeEventListener("visibilitychange", pauseWhenHidden);
+  }, [clearBursts, clearDrawing]);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -620,7 +640,7 @@ export function AcademyInteractions() {
 
   return (
     <div ref={rootRef} className={styles.root} aria-hidden="true">
-      <canvas ref={canvasRef} className={styles.canvas} />
+      <canvas ref={canvasRef} className={styles.canvas} width={1} height={1} />
       <div className={styles.burstLayer}>
         {bursts.map((burst) => {
           const burstStyle: BurstStyle = {

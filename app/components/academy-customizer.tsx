@@ -87,7 +87,7 @@ const PET_TURN_TOTAL_MS = 420;
 const PET_TURN_FIRST_FRAME_MS = 48;
 const PET_TURN_FRAME_INTERVAL_MS = 64;
 const PET_TURN_SETTLE_MS = 372;
-const PET_HOLD_MS = 200;
+const PET_HOLD_MS = 100;
 const PET_PICKUP_ART_MS = 52;
 const PET_LIFT_MS = 188;
 const PET_DROP_MS = 160;
@@ -111,26 +111,26 @@ const getServerHydratedSnapshot = () => false;
 
 const IZUMI_FRAME_WIDTH = 480;
 const IZUMI_FRAME_HEIGHT = 680;
-const IZUMI_CROP_TOP = 70;
-const IZUMI_FRAME_OFFSETS = [-40, -7, 24, 45] as const;
 
 function IzumiFrame({ index, label }: { index: number; label: string }) {
   return (
-    <svg
+    <span
       className={styles.izumiFrame}
-      viewBox={`0 ${IZUMI_CROP_TOP} ${IZUMI_FRAME_WIDTH} ${IZUMI_FRAME_HEIGHT}`}
+      data-frame={index}
       role="img"
       aria-label={label}
     >
-      <image
-        href="/media/sakurai-izumi-pet.png"
-        x={-IZUMI_FRAME_WIDTH * index + IZUMI_FRAME_OFFSETS[index]}
-        y="0"
-        width="1921"
-        height="819"
-        preserveAspectRatio="none"
+      <Image
+        className={styles.izumiSprite}
+        src="/media/izumi-idle-sprite.webp"
+        alt=""
+        width={IZUMI_FRAME_WIDTH * 4}
+        height={IZUMI_FRAME_HEIGHT}
+        draggable={false}
+        decoding="async"
+        unoptimized
       />
-    </svg>
+    </span>
   );
 }
 
@@ -169,12 +169,12 @@ function IzumiDragIllustration() {
     <span className={styles.izumiDragArt}>
       <Image
         className={styles.izumiDragSprite}
-        src="/media/izumi-drag-sprite.png"
+        src="/media/izumi-drag-sprite-v2.webp"
         alt=""
         width={1920}
         height={1360}
         draggable={false}
-        priority
+        decoding="async"
         unoptimized
       />
     </span>
@@ -186,12 +186,12 @@ function IzumiTurnIllustration() {
     <span className={styles.izumiTurnArt}>
       <Image
         className={styles.izumiTurnSprite}
-        src="/media/izumi-turn-sprite.png"
+        src="/media/izumi-turn-sprite.webp"
         alt=""
         width={2400}
         height={680}
         draggable={false}
-        priority
+        decoding="async"
         unoptimized
       />
     </span>
@@ -203,7 +203,7 @@ function IzumiReactionIllustration() {
     <span className={styles.izumiReactionArt}>
       <Image
         className={styles.izumiReactionSprite}
-        src="/media/izumi-reaction-sprite.png"
+        src="/media/izumi-reaction-sprite.webp"
         alt=""
         width={960}
         height={680}
@@ -219,7 +219,7 @@ function IzumiAppearanceIllustration() {
     <span className={styles.izumiAppearanceArt}>
       <Image
         className={styles.izumiAppearanceSprite}
-        src="/media/izumi-appearance-sprite.png"
+        src="/media/izumi-appearance-sprite.webp"
         alt=""
         width={960}
         height={680}
@@ -293,8 +293,14 @@ function AcademyPet() {
     const bubble = bubbleRef.current;
     if (!button || !bubble) return;
     const bounds = button.getBoundingClientRect();
-    const left = bounds.left + bounds.width * 0.28 - bubble.offsetWidth;
-    const top = bounds.top + bounds.height * 0.18 - bubble.offsetHeight;
+    const left = Math.max(PET_VIEWPORT_MARGIN, Math.min(
+      bounds.left + bounds.width * 0.28 - bubble.offsetWidth,
+      window.innerWidth - bubble.offsetWidth - PET_VIEWPORT_MARGIN,
+    ));
+    const top = Math.max(PET_VIEWPORT_MARGIN, Math.min(
+      bounds.top + bounds.height * 0.18 - bubble.offsetHeight,
+      window.innerHeight - bubble.offsetHeight - PET_VIEWPORT_MARGIN,
+    ));
     bubble.style.left = `${Math.round(left)}px`;
     bubble.style.top = `${Math.round(top)}px`;
   }, []);
@@ -308,12 +314,14 @@ function AcademyPet() {
   }, [syncBubblePosition]);
 
   const setUserPosition = useCallback((x: number, y: number) => {
-    userXRef.current = x;
-    userYRef.current = y;
+    const roundedX = Math.round(x);
+    const roundedY = Math.round(y);
+    userXRef.current = roundedX;
+    userYRef.current = roundedY;
     const button = buttonRef.current;
     if (!button) return;
-    button.style.setProperty("--pet-user-x", `${x.toFixed(2)}px`);
-    button.style.setProperty("--pet-user-y", `${y.toFixed(2)}px`);
+    button.style.setProperty("--pet-user-x", `${roundedX}px`);
+    button.style.setProperty("--pet-user-y", `${roundedY}px`);
     scheduleBubblePosition();
   }, [scheduleBubblePosition]);
 
@@ -490,7 +498,7 @@ function AcademyPet() {
 
   const scheduleAutoAction = useCallback(function schedule(afterAction = 0) {
     if (autoTimerRef.current !== null) window.clearTimeout(autoTimerRef.current);
-    if (!motionEnabled || !petVisible) return;
+    if (!motionEnabled || !petVisible || document.hidden) return;
 
     const quietTime = AUTO_ACTION_MIN + Math.random() * AUTO_ACTION_RANGE;
     autoTimerRef.current = window.setTimeout(() => {
@@ -567,6 +575,12 @@ function AcademyPet() {
     dragSessionRef.current = null;
 
     if (petVisible) {
+      if (visibilityPhaseRef.current === "hidden") {
+        roamXRef.current = 0;
+        userXRef.current = 0;
+        userYRef.current = 0;
+        facingRef.current = "left";
+      }
       updateVisibilityPhase("entering");
       setReactionCopy(PET_ENTRANCE_COPY);
       setBubbleVisible(true);
@@ -613,7 +627,14 @@ function AcademyPet() {
   useEffect(() => {
     if (!motionEnabled || !petVisible) return;
     scheduleAutoAction();
+    const handleVisibility = () => {
+      if (autoTimerRef.current !== null) window.clearTimeout(autoTimerRef.current);
+      autoTimerRef.current = null;
+      if (!document.hidden) scheduleAutoAction();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
     return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
       if (autoTimerRef.current !== null) window.clearTimeout(autoTimerRef.current);
       autoTimerRef.current = null;
     };
@@ -917,12 +938,14 @@ function AcademyPet() {
     setUserPosition,
   ]);
 
+  // A disabled pet should not download sprite sheets or keep hidden art animating.
+  if (visibilityPhase === "hidden") return null;
+
   return (
     <div
       className={styles.petLayer}
       data-motion={motionEnabled ? "on" : "off"}
       data-visibility={visibilityPhase}
-      aria-hidden={visibilityPhase === "hidden"}
     >
       <button
         ref={buttonRef}
@@ -938,8 +961,8 @@ function AcademyPet() {
         data-species="izumi"
         type="button"
         tabIndex={visibilityPhase === "visible" ? 0 : -1}
-        aria-label="Izumi Sakurai companion. Click for another action. Hold for 0.2 seconds, then drag to move her."
-        title="Click to say hello · Hold 0.2 seconds, then drag to move Izumi"
+        aria-label="Izumi Sakurai companion. Click for another action. Hold for 0.1 seconds, then drag to move her."
+        title="Click to say hello · Hold 0.1 seconds, then drag to move Izumi"
         onPointerDown={(event) => {
           if (event.pointerType !== "mouse" || event.button !== 0 || !event.isPrimary) return;
           if (visibilityPhaseRef.current !== "visible") return;

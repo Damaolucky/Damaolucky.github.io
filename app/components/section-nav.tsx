@@ -38,7 +38,8 @@ export function SectionNav({ className = "" }: { className?: string }) {
       } else {
         // Select the section occupying the reading area just below the sticky
         // header. A small buffer prevents flicker when a heading crosses it.
-        const readingLine = Math.min(160, Math.max(96, window.innerHeight * 0.18));
+        const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 76;
+        const readingLine = Math.max(headerBottom + 20, Math.min(160, window.innerHeight * 0.18));
 
         for (const section of sections.slice(1)) {
           const element = document.getElementById(section.id);
@@ -78,13 +79,17 @@ export function SectionNav({ className = "" }: { className?: string }) {
     if (!target) return;
 
     event.preventDefault();
-    const headerHeight = event.currentTarget.closest("header")?.getBoundingClientRect().height ?? 76;
+    const header = event.currentTarget.closest("header");
+    const headerHeight = header && window.getComputedStyle(header).position === "sticky"
+      ? header.getBoundingClientRect().height
+      : 0;
     const top = id === "top"
       ? 0
       : Math.max(0, window.scrollY + target.getBoundingClientRect().top - headerHeight - 18);
 
     window.history.pushState(null, "", `#${id}`);
     setActiveSection(id);
+    target.focus({ preventScroll: true });
     window.scrollTo({
       top,
       behavior: prefersInstantScroll() ? "auto" : "smooth",

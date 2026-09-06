@@ -3,23 +3,42 @@
 import { useSyncExternalStore } from "react";
 
 const PET_PREFERENCE_EVENT = "homepage-pet-change";
+// Also used by the pre-hydration script in app/layout.tsx.
+const MOBILE_PET_QUERY = "(max-width: 780px), (hover: none) and (pointer: coarse)";
 
 function getPetSnapshot() {
   if (typeof document === "undefined") return true;
-  return document.documentElement.dataset.pet !== "off";
+  const value = document.documentElement.dataset.pet;
+  return value === "on" || (value !== "off" && !window.matchMedia(MOBILE_PET_QUERY).matches);
 }
 
 function subscribeToPetPreference(callback: () => void) {
-  const handleStorage = (event: StorageEvent) => {
-    if (event.key !== "homepage-pet") return;
-
-    document.documentElement.dataset.pet = event.newValue === "off" ? "off" : "on";
+  const mediaQuery = window.matchMedia(MOBILE_PET_QUERY);
+  const applyPreference = () => {
+    const root = document.documentElement;
+    const preference = root.dataset.petPreference;
+    root.dataset.pet = preference === "on" || preference === "off"
+      ? preference
+      : mediaQuery.matches ? "off" : "on";
     callback();
   };
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key !== null && event.key !== "homepage-pet") return;
 
+    if (event.newValue === "on" || event.newValue === "off") {
+      document.documentElement.dataset.petPreference = event.newValue;
+    } else {
+      delete document.documentElement.dataset.petPreference;
+    }
+    applyPreference();
+  };
+
+  applyPreference();
+  mediaQuery.addEventListener("change", applyPreference);
   window.addEventListener(PET_PREFERENCE_EVENT, callback);
   window.addEventListener("storage", handleStorage);
   return () => {
+    mediaQuery.removeEventListener("change", applyPreference);
     window.removeEventListener(PET_PREFERENCE_EVENT, callback);
     window.removeEventListener("storage", handleStorage);
   };
@@ -32,6 +51,7 @@ export function usePetVisible() {
 export function setPetPreference(visible: boolean) {
   const value = visible ? "on" : "off";
   document.documentElement.dataset.pet = value;
+  document.documentElement.dataset.petPreference = value;
   try {
     window.localStorage.setItem("homepage-pet", value);
   } catch {

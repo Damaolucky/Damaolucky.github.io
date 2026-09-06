@@ -37,6 +37,10 @@
   transition-duration: 0.01ms;
 }
 
+@media (max-width: 1080px) {
+  .nav .link::after { right: 12px; bottom: 4px; left: 12px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .nav .link,
   .nav .link::after {

@@ -24,8 +24,8 @@ been recolored, reshaped, or combined with the site identity.
 
 | Local file | Generation reference | Processing | SHA-256 |
 | --- | --- | --- | --- |
-| `sakurai-izumi-pet.png` | Generated with the built-in ImageGen tool using the [official Nichijou character sheet](https://shinonome-lab.com/character/img/sakurai_01.jpg) as a visual identity reference. | Four-state Q-style sprite generated on a flat magenta key background, then converted locally to an RGBA PNG with soft edge matting and despill. | `94c5eb25ab70abfe360725f469dd80d2beb86662f27d34b21678d1ae5985861d` |
-| `izumi-drag-sprite.png` | Generated with the built-in ImageGen tool using the existing homepage Izumi sprite as the strict character and rendering-style reference. | Eight complete poses generated as a 4×2 magenta-key sheet, converted locally with soft edge matting and despill, then normalized into eight equal 480×680 RGBA frames without body-part rigging. | `51c24cd88120c6b90cf49c94a15fe167577773bf3756fe690f308a618a30f7b5` |
+| `izumi-idle-sprite.png` | Generated with the built-in ImageGen tool using the previous four-state companion sprite and the appearance sprite as strict identity and rendering references. | Four states were redrawn with crisper linework, softly matted and despilled, then normalized into four equal 480×680 transparent frames. Resting poses share the appearance sprite's 610px visual height and 662px foot baseline; the startled hop keeps its intentional raised baseline. | `99c1d7e8523b5b179530d2159e9856e01b91d89544b041fa071c22ddf07a8fb2` |
+| `izumi-drag-sprite-v2.png` | Generated with the built-in ImageGen tool using the earlier drag sheet, refined idle sheet, and appearance sheet as strict action, identity, and rendering references. | Eight complete poses were redrawn with crisper linework, softly matted and despilled, then normalized into eight equal 480×680 transparent frames. The prior animation's visual heights, centers, and foot baselines were retained so the motion sequence does not jump. | `5dbeb9aaf0e3e9dd7a82543140f80fe3a570b25fe79890131b08e5028cf44f51` |
 | `izumi-turn-sprite.png` | Generated with the built-in ImageGen tool using the existing homepage Izumi sprite as the strict identity, scale, outfit, and rendering reference. | Five complete intermediate turning poses generated on a magenta key, softly matted and despilled, then normalized to equal 480×680 frames with a shared 31px head line and 663px foot baseline. Exact original idle artwork supplies both animation endpoints. | `f2fb820b3670e44fce78a0d986b63f812a08af340e1803c2d1e8c8b0cc85b0b8` |
 | `izumi-reaction-sprite.png` | Generated with the built-in ImageGen tool using the existing homepage Izumi sprite as the strict character and rendering-style reference. | Two complete artist and heart-gesture poses generated on a flat magenta key, converted locally with soft edge matting and despill, then normalized without body-part rigging into two equal 480×680 transparent frames with a shared 663px foot baseline. | `8a2b7b51e636b218b76032d0a73ecd96fc7302964976fdb0887456d37e6cd4bd` |
 | `izumi-appearance-sprite.png` | Generated with the built-in ImageGen tool using the existing homepage Izumi sprites as strict character and rendering-style references. | Two complete entrance and exit poses generated on a flat magenta key, converted locally with soft edge matting and despill, then normalized to two equal 480×680 transparent frames with matched visual scale and baseline. | `2a7c9676f7004d1478c8eaddc375bb0f07a75ce5fd61e789779d5d7156795c0b` |
@@ -34,33 +34,27 @@ The generated asset is a new simplified rendering for this personal homepage;
 it does not copy or crop pixels from the reference sheet. The character and
 original design remain the property of their respective rights holders.
 
-### Pet sprite generation prompt
+### Refined idle sprite generation prompt
 
 ```text
-Use case: stylized-concept
-Asset type: four-state chibi character sprite sheet for an interactive personal-portfolio web pet
-Input images: Image 1 is the official character design reference; use it only to preserve the recognizable character traits and outfit
-Primary request: Create one clean horizontal sprite sheet with exactly four equal-width cells showing the same chibi interpretation of Izumi Sakurai from Nichijou, full body and centered in every cell, consistent scale, proportions, outfit, line weight, and baseline.
-Subject: adult female English teacher, 2.5-head-tall chibi proportions, sandy light-brown softly wavy bob with outward-flipped ends and one small ahoge, huge dark-brown eyes, gentle childlike face, subtle blush, pale-green cardigan over cream top with white collar, long khaki-beige ankle skirt with a tiny ruffled hem, white socks, simple tan school slippers.
-Pose/state per cell, left to right: 1) shy neutral idle, shoulders slightly tucked and both hands held near chest; 2) warm closed-eye blink and tiny smile, one small friendly wave; 3) startled but cute, shoulders raised, small round mouth, two comic sweat droplets and slight hop; 4) sleepy, eyes closed, hands together by cheek, calm tiny sway.
-Style/medium: polished flat 2D chibi game-sprite illustration, clean warm-brown outlines, restrained pastel colors, simple readable silhouettes, subtle cel shading, charming and lively, suitable at 96px display height.
-Composition/framing: 4 columns in a single row; each character centered with equal generous padding; identical camera and baseline; no overlap between cells; no panel dividers.
-Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for local background removal. The entire background must be one uniform color with no shadows, gradients, texture, reflections, floor plane, or lighting variation.
-Constraints: use no #ff00ff anywhere in the character; crisp edges; no cast shadow or contact shadow; no text, letters, numbers, symbols, labels, watermark, logo, border, grid, frame, extra characters, props, cropped limbs, or duplicated body parts. Preserve character identity and outfit across all four cells.
-Avoid: photorealism, 3D rendering, detailed scenery, exaggerated anxiety, sexualization, child body anatomy; she is a 24-year-old adult rendered in chibi proportions.
+Use case: style-transfer
+Asset type: high-resolution 2D sprite sheet for an interactive personal-homepage desktop companion
+Input images: the previous four-state Izumi companion sprite and the existing appearance sprite; preserve identity while using the appearance sprite's crisp line quality as the rendering reference.
+Primary request: Redraw the four equivalent companion states—neutral with hands near chest, a small warm wave, a cute startled hop with two sweat droplets, and sleepy with hands by cheek—as one four-cell horizontal sheet.
+Composition: exactly four equal cells; one complete character per cell; shared apparent head size, visual center, foot baseline and line weight. The startled hop may retain its raised foot baseline. No text, watermark, labels, panels, cast shadows, or scenery.
+Scene/backdrop: perfectly flat #ff00ff chroma-key background for local removal; no gradients, texture, floor plane or reflections.
 ```
 
-### Drag-reaction sprite generation prompt
+### Refined drag-reaction sprite generation prompt
 
 ```text
 Use case: illustration-story
-Asset type: high-resolution 2D website desktop-companion sprite sheet
-Primary request: Create eight new full-body animation poses for the same chibi character shown in the reference, arranged as an exact 4-column by 2-row sprite sheet. The input sprite is the strict character-design and rendering-style reference, not an edit target.
-Subject invariants: preserve the same character identity and proportions in every cell: short light-brown bob haircut with one ahoge, large warm-brown eyes, pale green cardigan, cream collared blouse, ankle-length beige skirt, white socks, beige-brown shoes. Preserve the clean soft anime linework, subtle watercolor-like shading, and cute mature—not toddlerish—expression design.
-Panel order, left-to-right then top-to-bottom: 1) pickup anticipation; 2) just lifted with naturally dangling feet; 3) happy carried sway A; 4) complementary carried sway B; 5) released in midair; 6) soft landing crouch with tiny dust puffs; 7) relieved rebound hop; 8) recovered celebration with a cheerful wave.
-Composition: exact uniform 4×2 grid, one complete character per equal cell, consistent scale and visual center, generous padding, no overlap, no borders, labels, or text.
-Scene/backdrop: perfectly flat solid #ff00ff chroma-key background across the entire canvas, including between cells. No shadows, gradients, texture, floor plane, reflections, or lighting variation.
-Constraints: every pose is a complete coherent drawing with natural anatomy and consistent face, hair, clothing, palette, line thickness, and lighting. No body-part rig fragments, cast shadow, contact shadow, watermark, signature, cropped limbs, extra limbs, malformed hands, identity drift, scenery, or props. Do not use #ff00ff in the subject.
+Asset type: high-resolution 2D action sprite sheet for a personal-homepage desktop companion
+Input images: the prior eight-pose drag sheet supplies the action order; the refined idle and appearance sheets are strict identity, crisp-linework, and baseline references.
+Primary request: Redraw the eight full-body action poses in the same order: pickup surprise, lifted dangling pose, two carried poses, released midair, soft landing crouch, recovery hop, and warm wave recovery.
+Composition: exact 4×2 grid, one complete character per cell. Preserve each predecessor frame's visual center, height, and foot baseline so the existing motion timings stay seamless.
+Scene/backdrop: perfectly flat #ff00ff chroma-key background across the whole sheet; no gradients, floor, shadows, reflections, panels, text, or labels.
+Constraints: crisp production linework and anti-aliased edges; coherent full-body poses only; no blur, soft focus, body-part rigging, scale drift, malformed hands, extra limbs, watermark, or signature.
 ```
 
 ### Turn-sequence sprite generation prompt
@@ -104,3 +98,11 @@ Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for backgroun
 Text: none.
 Constraints: clean production sprite art, crisp antialiased edges, no cast shadow, no contact shadow, no reflection, no panel borders, no grid, no labels, no watermark, no signature. Preserve character identity and outfit exactly.
 ```
+## Production image variants
+
+`npm run assets:optimize` creates responsive 256/512/768-pixel WebP portraits
+from the original PNGs with quality 88, a 96-pixel lossless WebP SDU mark, and
+lossless WebP versions of all five Izumi sprite sheets. Original art and source
+attribution are retained above. The site loads the WebP variants directly;
+the original PNGs remain editing sources. Sprite frame dimensions, transparency,
+and visible pixels are unchanged and checked by the release tests.
