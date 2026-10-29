@@ -101,6 +101,13 @@ const EFFECT_EXCLUSION_SELECTOR = [
   "h2",
   "h3",
   "h4",
+  "h5",
+  "h6",
+  "blockquote",
+  "pre",
+  "code",
+  "td",
+  "th",
   "li",
   "dt",
   "dd",
@@ -134,7 +141,12 @@ function isInteractiveTarget(target: EventTarget | null) {
 }
 
 function suppressesClickEffect(target: EventTarget | null) {
-  return target instanceof Element && target.closest(EFFECT_EXCLUSION_SELECTOR) !== null;
+  if (!(target instanceof Element)) return false;
+  if (target.closest(EFFECT_EXCLUSION_SELECTOR)) return true;
+  // Plain text in divs (affiliation, project metadata, etc.) is selectable too.
+  return Array.from(target.childNodes).some((node) =>
+    node.nodeType === Node.TEXT_NODE && Boolean(node.textContent?.trim()),
+  );
 }
 
 function keyboardTarget(target: EventTarget | null) {
@@ -437,6 +449,8 @@ export function AcademyInteractions() {
 
   const beginStroke = useCallback((pending: PendingPress) => {
     if (!motionEnabledRef.current || pendingPressRef.current !== pending || pending.interactive) return;
+    // A selection started during the hold always takes priority over drawing.
+    if (window.getSelection()?.isCollapsed === false) return;
 
     pending.timer = null;
     pending.drawing = true;
@@ -534,7 +548,7 @@ export function AcademyInteractions() {
         lastY: event.clientY,
         timer: null,
         drawing: false,
-        interactive: isInteractiveTarget(event.target),
+        interactive: isInteractiveTarget(event.target) || suppressesClickEffect(event.target),
         suppressEffect: isInteractiveTarget(event.target) || suppressesClickEffect(event.target),
       };
       pendingPressRef.current = pending;

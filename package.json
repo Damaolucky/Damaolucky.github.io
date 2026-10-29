@@ -13,7 +13,9 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck && npm test && npm audit --audit-level=moderate",
-    "assets:optimize": "node scripts/optimize-assets.mjs"
+    "assets:optimize": "node scripts/optimize-assets.mjs",
+    "build:pages": "node scripts/build-github-pages.mjs",
+    "test:pages": "node --test tests/pages/static-export.mjs"
   },
   "dependencies": {
     "next": "16.3.4",

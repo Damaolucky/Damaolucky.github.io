@@ -24,30 +24,32 @@ test("renders the final Lavender Academy homepage at the canonical root", async 
   const html = await response.text();
   assert.match(html, /Hua Zhou/);
   assert.match(html, /I&#x27;m Hua/);
-  assert.match(html, /Recent notes/);
+  assert.doesNotMatch(html, /Recent notes|id="news"/);
   assert.match(html, /Selected work/);
   assert.match(html, /Misc/);
-  assert.match(html, /Multi-view 3D Reconstruction for Ergonomic Analysis/);
-  assert.match(html, /Style Transfer Models on Pokémon Images/);
-  assert.match(html, /hua-profile-768\.webp/);
-  assert.match(html, /hua-profile-anime-clean-768\.webp/);
+  assert.match(html, /Historical Map/);
+  assert.equal((html.match(/<article\b/g) ?? []).length, 1);
+  assert.doesNotMatch(html, /Curriculum vitae|My contributions|projectStats/);
+  assert.doesNotMatch(html, /Multi-view 3D Reconstruction for Ergonomic Analysis|Style Transfer Models on Pokémon Images|Evaluating VR Tutorials/);
+  assert.doesNotMatch(html, /hua-profile|data-portrait-mode|Current portrait:/);
   assert.match(html, /Prof\. Hadar Averbuch-Elor/);
   assert.match(html, /Prof\. Yin Li/);
   assert.match(html, /Prof\. Icy Zhang/);
   assert.match(html, /Cornell Tech/);
   assert.match(html, /Shandong University/);
   assert.doesNotMatch(html, /data-(?:academy-page|backdrop|page-font|heart|pet|topic)=/);
-  assert.match(html, /Damaolucky/);
+  assert.doesNotMatch(html, /Damaolucky · back to top|Compare designs/);
   assert.match(html, /href="#top"[^>]*aria-current="location"[^>]*>About/);
-  assert.match(html, /href="#news">News/);
+  assert.doesNotMatch(html, /href="#news"/);
   assert.match(html, /href="#work">Work/);
   assert.doesNotMatch(html, /Open appearance choices|Look/);
   assert.match(html, /Turn motion (?:off|on)/);
-  assert.match(html, /Hide Izumi desktop pet/);
+  assert.match(html, /Show Izumi desktop pet/);
   assert.match(html, /Switch to dark mode/);
-  assert.match(html, /Last updated: August 12, 2026/);
-  assert.ok(html.indexOf("Recent notes") < html.indexOf("Selected work"), "news comes first");
-  assert.match(html, /Outside research, I enjoy animation/);
+  assert.match(html, /Last updated: October 28, 2026/);
+  assert.match(html, /I was born and raised in Changshu, Suzhou/);
+  assert.match(html, /I enjoy building something beautiful/);
+  assert.match(html, /media\/map-options\/layered-map.svg/);
   assert.doesNotMatch(html, /2025\.Fall|Academic Excellence Scholarship/);
   assert.doesNotMatch(html, /V1 visual variants|data-v1-variant|五套可爱版本|丝带编辑部|猫咪研究社|原画工作台|兔兔图书室/);
 });
@@ -146,6 +148,8 @@ test("shows black icon contacts, reveals a selectable round email, and disables 
   assert.match(html, /mailto:damaoluckyy@gmail\.com/);
   assert.match(html, /damaoluckyy@gmail\.com/);
   assert.match(html, /href="https:\/\/github\.com\/Damaolucky"/);
+  assert.match(html, /href="https:\/\/x\.com\/lovvvyo3"/);
+  assert.match(html, /aria-label="X · @lovvvyo3"/);
   assert.doesNotMatch(html, /href="https:\/\/scholar\.google\.com/);
   assert.match(html, /Google Scholar — coming soon/);
   assert.match(html, /aria-disabled="true"/);
@@ -169,7 +173,7 @@ test("shows black icon contacts, reveals a selectable round email, and disables 
 
   const footer = html.match(/<footer[^>]*>([\s\S]*?)<\/footer>/)?.[1] ?? "";
   assert.match(footer, /<p>Hua Zhou · 2026<\/p>/);
-  assert.match(footer, /<time[^>]*2026-08-12[^>]*>Last updated: August 12, 2026<\/time>/);
+  assert.match(footer, /<time[^>]*2026-10-28[^>]*>Last updated: October 28, 2026<\/time>/);
   assert.doesNotMatch(footer, /<a\b|@|Lavender|薰衣草/);
 });
 
@@ -272,7 +276,7 @@ test("keeps pet preferences consistent across resizing, storage events, and bloc
       assert.equal(name, "react");
       return {
         useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot) {
-          assert.equal(getServerSnapshot(), true, "stable hydration snapshot");
+          assert.equal(getServerSnapshot(), false, "stable hydration snapshot");
           snapshot = getSnapshot;
           unsubscribe = subscribe(() => { updates += 1; });
           return getSnapshot();
@@ -292,7 +296,7 @@ test("keeps pet preferences consistent across resizing, storage events, and bloc
   };
 
   resize(false);
-  assert.equal(snapshot(), true, "desktop default on resize");
+  assert.equal(snapshot(), false, "desktop default remains off on resize");
   resize(true);
   assert.equal(snapshot(), false, "mobile default on resize");
   exports.setPetPreference(true);
@@ -306,7 +310,7 @@ test("keeps pet preferences consistent across resizing, storage events, and bloc
   resize(false);
   assert.equal(snapshot(), false, "another tab's opt-out survives resizing");
   storageEvent("homepage-pet", null);
-  assert.equal(snapshot(), true, "removing a preference restores the desktop default");
+  assert.equal(snapshot(), false, "removing a preference restores the off default");
   resize(true);
   assert.equal(snapshot(), false);
   storageEvent("homepage-theme", "dark");
@@ -346,7 +350,7 @@ test("uses Lavender as the only page background and removes the background switc
   assert.ok(displayPreferences, "display preferences are rendered");
   assert.equal((displayPreferences.match(/<button\b/g) ?? []).length, 3);
   assert.match(displayPreferences, /Turn motion (?:off|on)/);
-  assert.match(displayPreferences, /Hide Izumi desktop pet/);
+  assert.match(displayPreferences, /Show Izumi desktop pet/);
   assert.match(displayPreferences, /Switch to dark mode/);
   assert.doesNotMatch(html, /aria-label="Use (?:white|lavender) page background"/i);
   assert.doesNotMatch(html, />White<\/span>/i);
@@ -361,7 +365,7 @@ test("uses Lavender as the only page background and removes the background switc
   assert.doesNotMatch(css, /data-background|backgroundPreferenceButton/);
 });
 
-test("defaults Izumi off on mobile, honors saved choices, and keeps entrance and exit sequences", async () => {
+test("defaults Izumi off on every device, honors saved choices, and keeps entrance and exit sequences", async () => {
   const [layout, controls, preference, customizer, petCss, appearanceSprite, sources] = await Promise.all([
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/theme-controls.tsx", import.meta.url), "utf8"),
@@ -390,7 +394,7 @@ test("defaults Izumi off on mobile, honors saved choices, and keeps entrance and
     return root;
   };
 
-  assert.equal(initializePet(null).dataset.pet, "on");
+  assert.equal(initializePet(null).dataset.pet, "off");
   assert.equal(initializePet("off").dataset.pet, "off");
   for (const width of [320, 375, 390, 430, 560, 768, 780]) {
     assert.equal(initializePet(null, { width }).dataset.pet, "off", `first visit at ${width}px`);
@@ -398,7 +402,7 @@ test("defaults Izumi off on mobile, honors saved choices, and keeps entrance and
     assert.equal(initializePet("invalid", { width }).dataset.pet, "off");
     assert.equal(initializePet(null, { width, storageBlocked: true }).dataset.pet, "off");
   }
-  assert.equal(initializePet(null, { width: 781 }).dataset.pet, "on");
+  assert.equal(initializePet(null, { width: 781 }).dataset.pet, "off");
   assert.equal(initializePet(null, { width: 932, touchOnly: true }).dataset.pet, "off", "landscape phone");
   assert.equal(initializePet(null, { width: 1024, touchOnly: true }).dataset.pet, "off", "touch-only tablet");
   assert.equal(initializePet("on", { touchOnly: true }).dataset.petPreference, "on");
@@ -408,7 +412,7 @@ test("defaults Izumi off on mobile, honors saved choices, and keeps entrance and
   assert.match(controls, /Hide Izumi desktop pet/);
   assert.match(controls, /Show Izumi desktop pet/);
   assert.match(preference, /useSyncExternalStore/);
-  assert.match(preference, /\(\) => true/);
+  assert.match(preference, /\(\) => false/);
   assert.match(preference, /homepage-pet-change/);
   assert.match(preference, /localStorage\.setItem\("homepage-pet", value\)/);
   assert.match(customizer, /usePetVisible\(\)/);
@@ -451,22 +455,13 @@ test("uses one maintainable paper list and keeps content out of page components"
   assert.doesNotMatch(paperConfig, /featured|mediaId/);
   assert.match(profilePage, /from "\.\/content\/papers"/);
   assert.doesNotMatch(profilePage, /const papers\s*=/);
-  assert.match(profilePage, /news\.map\(\(item\) => <li/);
   assert.doesNotMatch(profilePage, /news\.map\(\(item,\s*index\)/);
 
   const response = await render("/");
   const html = await response.text();
-  const titles = [
-    "Multi-view 3D Reconstruction for Ergonomic Analysis",
-    "Evaluating VR Tutorials for Immersive Learning",
-    "Style Transfer Models on Pokémon Images",
-  ];
-  let previous = -1;
-  for (const title of titles) {
-    const position = html.indexOf(title);
-    assert.ok(position > previous, title);
-    previous = position;
-  }
+  assert.equal((html.match(/<article\b/g) ?? []).length, 1);
+  assert.match(html, /id="histmappairs"/);
+  assert.doesNotMatch(html, /0\.124|79\.7%|661 test/);
 });
 
 test("renders a two-paragraph biography with official school marks and linked mentors", async () => {
@@ -899,7 +894,7 @@ test("keeps the requested text comfortably legible and responsive", async () => 
   assert.doesNotMatch(css, /data-v1-variant/);
 });
 
-test("switches smoothly between direct-loaded Oval and subtitle-free Clip portraits", async () => {
+test("omits the homepage portrait while preserving its component for rollback", async () => {
   const [page, portrait, css, brand, brandCss] = await Promise.all([
     readFile(new URL("../app/profile.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/profile-portrait.tsx", import.meta.url), "utf8"),
@@ -910,7 +905,7 @@ test("switches smoothly between direct-loaded Oval and subtitle-free Clip portra
   const response = await render("/");
   const html = await response.text();
 
-  assert.match(page, /import \{ ProfilePortrait \}/);
+  assert.doesNotMatch(page, /import \{ ProfilePortrait \}|<ProfilePortrait/);
   assert.match(portrait, /src="\/media\/hua-profile-768\.webp"/);
   assert.match(portrait, /src="\/media\/hua-profile-anime-clean-768\.webp"/);
   assert.match(portrait, /PORTRAIT_STORAGE_KEY/);
@@ -922,20 +917,19 @@ test("switches smoothly between direct-loaded Oval and subtitle-free Clip portra
   assert.match(portrait, /data-academy-no-effect/);
   assert.doesNotMatch(portrait, /figcaption|Hua Zhou · UW–Madison/);
   assert.match(portrait, /unoptimized/);
-  assert.match(html, /src="\/media\/hua-profile-768\.webp"/);
-  assert.match(html, /src="\/media\/hua-profile-anime-clean-768\.webp"/);
+  assert.doesNotMatch(html, /hua-profile|data-portrait-mode|Current portrait:/);
   assert.doesNotMatch(html, /_vinext\/image\?url=%2Fmedia%2Fhua-profile/);
   assert.match(css, /data-portrait-mode="oval"/);
   assert.match(css, /data-portrait-mode="clip"/);
   assert.match(css, /opacity 420ms ease/);
   assert.match(css, /transform 620ms cubic-bezier/);
-  assert.match(brand, /Damaolucky/);
+  assert.doesNotMatch(brand, /Damaolucky/);
   assert.match(brand, /viewBox="0 0 24 24"/);
   assert.equal((brand.match(/className=\{styles\.heartShape\}/g) ?? []).length, 1);
   assert.doesNotMatch(brand, /data-heart-shape=/);
   assert.doesNotMatch(brandCss, /data-heart=/);
   assert.match(brand, /data-academy-no-effect/);
-  assert.match(brand, /className=\{styles\.mark\}[\s\S]*?<\/button>[\s\S]*?className=\{styles\.name\}/);
+  assert.match(brand, /className=\{styles\.mark\}[\s\S]*?<\/button>/);
   assert.doesNotMatch(brand, /<button[\s\S]*?Damaolucky[\s\S]*?<\/button>/);
   assert.doesNotMatch(portrait, /portraitSwitchHint|↻/);
   assert.doesNotMatch(css, /\.portraitSwitchHint/);

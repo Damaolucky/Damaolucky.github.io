@@ -106,3 +106,16 @@ lossless WebP versions of all five Izumi sprite sheets. Original art and source
 attribution are retained above. The site loads the WebP variants directly;
 the original PNGs remain editing sources. Sprite frame dimensions, transparency,
 and visible pixels are unchanged and checked by the release tests.
+
+
+## Historical Map project thumbnail
+
+`historical-map.svg` is an original vector illustration created for this portfolio: a stylized historical street map and a modern map joined by corresponding landmarks. It is a conceptual project thumbnail, not an experimental result or a map of a specific place. No third-party image assets are used.
+
+## Historical Map alternatives (2026-10-28)
+
+- `map-options/nypl-streets-1891.jpg`: unmodified NYPL 760px download, image ID 2021209, *Map bounded by William St., Park St., Market St., East River, Maiden Lane, Plate 3* (1891), G. W. and W. S. Bromley. https://old-digitalcollections.nypl.org/items/a1ebc562-2ba1-5f02-e040-e00a18064811
+- `map-options/nypl-manhattan-1891.jpg`: unmodified NYPL 760px download, image ID 2021203, *Outline and Index map of New York City, Manhattan Island* (1891). https://old-digitalcollections.nypl.org/items/a1ebc562-2b9b-5f02-e040-e00a18064811
+- Both source pages state “Free to use without restriction.” Display cropping and composition happen in CSS; matching-point overlays are conceptual, not experimental results.
+- `map-options/folded-map.svg`, `layered-map.svg`, `map-window.svg`, `map-lines.svg`: original code-native vector illustrations for the lavender portfolio. These illustrate the project theme rather than any actual dataset or result.
+- `/map-options/` is an unindexed comparison page. Selection there only changes its local preview and does not change the homepage choice.

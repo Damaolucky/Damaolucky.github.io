@@ -5,7 +5,6 @@ import styles from "./section-nav.module.css";
 
 const sections = [
   { id: "top", label: "About" },
-  { id: "news", label: "News" },
   { id: "work", label: "Work" },
   { id: "misc", label: "Misc" },
 ] as const;

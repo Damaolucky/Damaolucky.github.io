@@ -36,19 +36,19 @@
 - `topics`：研究方向标签，可使用 `"worlds"`、`"motion"`、`"interaction"`，也可以填写多个。
 - `summary`：建议用一到两句说明研究问题、方法和结果。
 - `kind`：使用 `"Research"`、`"Project"` 或 `"Paper"`。
+- `image`：可选项目配图，格式 `{ src: "/media/example.svg", alt: "描述" }`，优先于抽象图案。
 - `art`：没有项目图片时使用的简洁卡片图案，可选 `"ribbons"`、`"frames"`、`"field"`、`"echo"`、`"blocks"`。
 - `links`：项目按钮列表。按钮名称使用 `"Paper"`、`"Project"`、`"Code"` 或 `"Video"`；没有链接时写 `links: []`。
 - `award`：可选字段，例如 `award: "Best Paper"`。
 
 页面按照数组中第一次出现的年份建立分组，并保留同一年内的条目顺序。建议将整个数组按年份从新到旧排列。
 
-## 更新简介、链接和 News
+## 更新简介和链接
 
 这些内容位于 `app/content/profile.ts`：
 
 - `profile.bioParagraphs`：首页简介；每个内层数组是一段文字。
 - `profile.email` 与 `profile.links`：邮箱、GitHub 和 Google Scholar。
-- `news`：Recent Notes 的日期和内容。
 - `miscText`：页面底部的 Misc 文本。
 - `lastUpdated`：页脚显示的更新时间；同时填写机器可读的 `dateTime` 和展示用的 `label`。
 
@@ -56,13 +56,13 @@
 
 ## 外观与互动
 
-最终版本固定使用 Round 字体、Lavender 花瓣背景和 Classic 心形，不再提供背景切换。首次访问默认 Bright；访客仍可切换 Motion/Still 与 Bright/Dark，主动选择的 Dark 会在之后访问时保留。头像默认显示二次元版本，点击后在二次元与油画版本之间平滑切换。
+最终版本固定使用 Round 字体、Lavender 花瓣背景和 Classic 心形，不再提供背景切换。首次访问默认 Bright；访客仍可切换 Motion/Still 与 Bright/Dark，主动选择的 Dark 会在之后访问时保留。主页不显示头像。
 
 在页面空白处按住鼠标左键 100 毫秒即可开始画线，松开后线条保留两秒再渐隐，Izumi 会换成画家立绘并回应 `Nice painting!`。点击左上角心形会触发她的比心立绘和黑白爱心对话。桌宠只保留 Izumi：按住鼠标左键 100 毫秒即可抓起拖动；抓起时确定空中朝向，升空后不会转向，并使用专属转向和落地动画。
 
 ## 本地查看与检查
 
-移动端和仅触屏设备默认关闭桌宠，手动选择会被记住。页面保留移动导航、
+所有设备默认关闭桌宠，手动选择会被记住。页面保留移动导航、
 44px 触控区域与横竖屏安全边距，并支持系统减少动态效果和键盘导航。
 
 头像与桌宠原始 PNG 保留作为编辑源。替换原图后运行 `npm run assets:optimize`
@@ -83,3 +83,5 @@ npm run check
 
 `npm run check` 会执行 lint、类型检查、正式构建、页面与发布资源检查，以及依赖审计；
 若出现错误，请先修复再发布。当前 Sites 项目仅本人可访问，保存版本不会修改访问范围。
+
+Historical Map is the only project shown, using the original compact project layout. The purple design, original pet, X link, and heart-only brand are retained. `/mono` remains a separate comparison route.

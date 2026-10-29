@@ -5,26 +5,6 @@
   color: var(--text);
 }
 
-.name {
-  color: inherit;
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  text-decoration: none;
-  transition: color 160ms ease;
-}
-
-.name:hover {
-  color: var(--accent);
-}
-
-.name:focus-visible {
-  border-radius: 4px;
-  outline: 2px solid var(--accent);
-  outline-offset: 4px;
-}
-
 .mark {
   position: relative;
   display: grid;
@@ -115,12 +95,7 @@
 
 @media (max-width: 780px) {
   .brand { gap: 8px; min-width: 0; }
-  .name { display: grid; min-height: 44px; align-items: center; font-size: 14px; }
   .mark { flex-basis: 44px; width: 44px; height: 44px; }
-}
-
-@media (max-width: 360px) {
-  .name { display: none; }
 }
 
 @media (pointer: coarse) {

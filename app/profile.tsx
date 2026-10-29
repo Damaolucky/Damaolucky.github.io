@@ -1,12 +1,12 @@
 import Image from "next/image";
 import { AcademyBrand } from "./components/academy-brand";
 import { AcademyCustomizer } from "./components/academy-customizer";
+import { PixelCorner } from "./components/pixel-corner";
 import { AcademyInteractions } from "./components/academy-interactions";
-import { ProfilePortrait } from "./components/profile-portrait";
 import { SectionNav } from "./components/section-nav";
 import { MotionToggle, PetToggle, ThemeToggle } from "./components/theme-controls";
 import { papers } from "./content/papers";
-import { lastUpdated, miscText, news, profile, researchThemes, type RichTextSegment, type SchoolMarkId } from "./content/profile";
+import { lastUpdated, miscText, profile, researchThemes, type RichTextSegment, type SchoolMarkId } from "./content/profile";
 import styles from "./profile.module.css";
 
 const years = [...new Set(papers.map((paper) => paper.year))];
@@ -28,6 +28,7 @@ function PaperLinks({ paper }: { paper: (typeof papers)[number] }) {
 }
 
 function Signal({ paper }: { paper: (typeof papers)[number] }) {
+  if (paper.image) return <Image className={styles.projectImage} src={paper.image.src} alt={paper.image.alt} width={320} height={400} unoptimized />;
   return (
     <div className={`${styles.signal} ${styles[`signal_${paper.art}`]}`} aria-hidden="true">
       <i /><i /><i /><i />
@@ -76,13 +77,17 @@ function BioText() {
   );
 }
 
-function ProfileIcon({ kind }: { kind: "email" | "github" | "scholar" }) {
+function ProfileIcon({ kind }: { kind: "email" | "github" | "scholar" | "x" }) {
   if (kind === "email") {
     return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2" /><path d="m4.5 7 7.5 5.8L19.5 7" /></svg>;
   }
 
   if (kind === "github") {
     return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 21v-3.8c.04-1.18-.42-2.31-1.26-3.13 3.1-.35 6.36-1.52 6.36-6.9A5.38 5.38 0 0 0 18.66 3.4 5 5 0 0 0 18.52.3S17.39-.06 15 1.74a13.2 13.2 0 0 0-6 0C6.61-.06 5.48.3 5.48.3a5 5 0 0 0-.14 3.1A5.38 5.38 0 0 0 3.9 7.2c0 5.36 3.26 6.53 6.36 6.9A4 4 0 0 0 9 17.2V21m0-2.8c-3 .92-3-1.5-4.2-1.8" /></svg>;
+  }
+
+  if (kind === "x") {
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h4.5L20 21h-4.5ZM20 3l-6.9 8M4 21l6.9-8" /></svg>;
   }
 
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m2.5 9.5 9.5-5 9.5 5-9.5 5Z" /><path d="M6 11.4v5.2c3.6 2.6 8.4 2.6 12 0v-5.2M21.5 9.5v6" /></svg>;
@@ -129,7 +134,6 @@ export function ProfilePage() {
 
       <main className={styles.shell}>
         <aside className={styles.profileRail}>
-          <ProfilePortrait className={styles.profilePortrait} />
           <div className={styles.railIdentity}>
             <h1>{profile.name}</h1>
             <p>{profile.role}</p>
@@ -171,15 +175,10 @@ export function ProfilePage() {
             <BioText />
           </section>
 
-          <section className={styles.news} id="news" tabIndex={-1} aria-labelledby="news-title">
-            <div className={styles.sectionHeading}><div><p>Updates</p><h2 id="news-title">Recent notes</h2></div></div>
-            <ol>{news.map((item) => <li key={item.date}><time dateTime={item.date.replace(".", "-")}>{item.date}</time><p>{item.text}</p></li>)}</ol>
-          </section>
-
           <section className={styles.publications} id="work" tabIndex={-1} aria-labelledby="work-title">
             <div className={styles.sectionHeading}>
               <div><p>Research & projects</p><h2 id="work-title">Selected work</h2></div>
-              <span>{papers.length} items · newest first</span>
+              <span>{papers.length} project</span>
             </div>
 
             {years.map((year) => (
@@ -205,6 +204,7 @@ export function ProfilePage() {
                 </div>
               </section>
             ))}
+            <div className={styles.projectCompanion}><PixelCorner /></div>
           </section>
 
           <section className={styles.misc} id="misc" tabIndex={-1} aria-labelledby="misc-title">

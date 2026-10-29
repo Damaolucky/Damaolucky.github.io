@@ -46,7 +46,7 @@ test("ships accurate metadata, scalable mobile viewport, and canonical URLs inde
 });
 
 test("protects response headers without dropping RSC cache variation or redirect status", async () => {
-  for (const [path, status] of [["/", 200], ["/does-not-exist", 404], ["/v1", 307]]) {
+  for (const [path, status] of [["/", 200], ["/mono", 200], ["/does-not-exist", 404], ["/v1", 307]]) {
     const response = await render(path);
     assert.equal(response.status, status);
     assert.equal(response.headers.get("x-content-type-options"), "nosniff");
@@ -60,7 +60,7 @@ test("protects response headers without dropping RSC cache variation or redirect
 
 test("resolves every local initial-load resource and keyboard navigation target", async () => {
   const html = await (await render()).text();
-  const urls = new Set([...html.matchAll(/(?:src|href)="(\/[^"#]*)"/g)].map((match) => match[1]));
+  const urls = new Set([...html.matchAll(/<(?:script|link|img|source)\b[^>]*?\b(?:src|href)="(\/[^"#]*)"/g)].map((match) => match[1]));
   for (const match of html.matchAll(/srcSet="([^"]+)"/gi)) {
     for (const candidate of match[1].split(",")) urls.add(candidate.trim().split(/\s+/)[0]);
   }
@@ -70,11 +70,11 @@ test("resolves every local initial-load resource and keyboard navigation target"
     assert.ok(asset.href.startsWith(assetRoot.href));
     assert.ok((await stat(asset)).size > 0, `${url} exists in the deployment`);
   }
-  for (const id of ["top", "news", "work", "misc"]) {
+  for (const id of ["top", "work", "misc"]) {
     assert.match(html, new RegExp(`id="${id}"[^>]*tabindex="-1"`, "i"));
   }
   assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
-  assert.match(html, /<time dateTime="2026-01"/i);
+  assert.match(html, /<time dateTime="2026-10-28"/i);
   assert.doesNotMatch(html, /(?:src|href)="[^"]*izumi/);
   assert.doesNotMatch(html, /(?:src|href)="[^"]*hua-profile[^" ]*\.png/);
 });
@@ -106,7 +106,7 @@ test("production server returns real asset bytes and MIME types, including HEAD 
   });
   const base = `http://localhost:${port}`;
   const html = await (await fetch(base)).text();
-  const resources = new Set([...html.matchAll(/(?:src|href)="(\/[^"#]*)"/g)].map((match) => match[1]));
+  const resources = new Set([...html.matchAll(/<(?:script|link|img|source)\b[^>]*?\b(?:src|href)="(\/[^"#]*)"/g)].map((match) => match[1]));
   for (const path of ["/robots.txt", "/sitemap.xml", "/media/hua-profile-anime-clean-256.webp", "/media/izumi-idle-sprite.webp"]) resources.add(path);
   for (const path of resources) {
     const response = await fetch(`${base}${path}`);
@@ -117,6 +117,7 @@ test("production server returns real asset bytes and MIME types, including HEAD 
     assert.ok(body.equals(expected), `${path} serves the exact built asset`);
     if (path.endsWith(".webp")) assert.match(response.headers.get("content-type"), /image\/webp/);
     if (path.endsWith(".svg")) assert.match(response.headers.get("content-type"), /image\/svg\+xml/);
+    if (path.endsWith(".pdf")) assert.match(response.headers.get("content-type"), /application\/pdf/);
     if (path.includes("/_next/static/")) assert.match(response.headers.get("cache-control"), /immutable/);
   }
   const head = await fetch(`${base}/media/hua-profile-anime-clean-256.webp`, { method: "HEAD" });

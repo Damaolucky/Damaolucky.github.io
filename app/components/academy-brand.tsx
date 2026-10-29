@@ -56,14 +56,6 @@ export function AcademyBrand() {
           ))}
         </span>
       </button>
-      <a
-        className={styles.name}
-        href="#top"
-        aria-label="Damaolucky · back to top"
-        data-academy-no-effect
-      >
-        Damaolucky
-      </a>
     </div>
   );
 }

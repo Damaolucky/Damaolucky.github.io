@@ -40,11 +40,12 @@ export const profile = {
       { text: "computer vision", strong: true },
       { text: " and " },
       { text: "generative AI", strong: true },
-      { text: ", with a focus on image and video understanding and generation. I enjoy building visual systems that learn useful structure from the way the world looks, moves, and responds." },
+      { text: ", with a focus on image and video understanding and generation. I enjoy building something beautiful." },
     ],
   ] satisfies readonly (readonly RichTextSegment[])[],
   links: [
     { id: "github", label: "GitHub", href: "https://github.com/Damaolucky" },
+    { id: "x", label: "X · @lovvvyo3", href: "https://x.com/lovvvyo3" },
     { id: "scholar", label: "Google Scholar", href: null },
   ],
 } as const;
@@ -64,13 +65,9 @@ export const researchThemes: readonly ResearchTheme[] = [
   },
 ];
 
-export const news = [
-  { date: "2026.01", text: "Joined UW–Madison research projects in ergonomic computer vision and immersive learning." },
-] as const;
-
 export const lastUpdated = {
-  dateTime: "2026-08-12",
-  label: "August 12, 2026",
+  dateTime: "2026-10-28",
+  label: "October 28, 2026",
 } as const;
 
-export const miscText = "Outside research, I enjoy animation, illustration, and small creative coding projects. I work with Python, PyTorch, Java, C, and Git, and speak Mandarin and English.";
+export const miscText = "I was born and raised in Changshu, Suzhou. I like music, especially Chinese hip-hop. I enjoy animation too, and I hope to get good at drawing someday.";

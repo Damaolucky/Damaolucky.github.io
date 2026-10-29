@@ -1,0 +1,25 @@
+.switcher {
+  position: relative;
+  z-index: 71;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 28px;
+  min-height: 44px;
+  padding: 4px 16px;
+  border-bottom: 1px solid #dedede;
+  background: #f5f5f5;
+  color: #656565;
+  font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.switcher > span { font-size: 9px; letter-spacing: .14em; }
+.switcher > div { display: flex; gap: 4px; }
+.switcher a { display: flex; align-items: center; min-height: 36px; padding: 0 12px; text-decoration: none; }
+.switcher a[aria-current="page"] { background: #202020; color: #fff; }
+.switcher a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.switcher a:focus-visible { outline: 2px solid #555; outline-offset: 2px; }
+@media (max-width: 480px) {
+  .switcher { gap: 8px; padding-inline: 8px; }
+  .switcher > span { display: none; }
+  .switcher a { min-height: 40px; }
+}
